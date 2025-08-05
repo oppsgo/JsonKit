@@ -16,6 +16,11 @@ public class JsonOptions {
         this.serializeNulls = builder.serializeNulls;
     }
 
+    public Builder newBuilder() {
+        return new Builder()
+                .setSerializeNulls(serializeNulls);
+    }
+
     public boolean isSerializeNulls() {
         return serializeNulls;
     }

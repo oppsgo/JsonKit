@@ -77,7 +77,7 @@ public class JsonKitTest {
     protected JsonAdapter createAdapter(JsonOptions options) {
         // TODO 测试对应的框架时需要替换成对应的工厂类
         JsonAdapterFactory factory = /* com.matuw.json.gson.GsonAdapterFactory.getInstance() */ null;
-        return JsonKit.newBuilder(factory).setOptions(options).build();
+        return JsonKit.builder(factory).setOptions(options).build();
     }
 
     @Before

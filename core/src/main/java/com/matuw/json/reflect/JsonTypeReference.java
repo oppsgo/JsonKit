@@ -1,5 +1,7 @@
 package com.matuw.json.reflect;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
@@ -35,6 +37,19 @@ public abstract class JsonTypeReference<T> {
         } else {
             throw new IllegalArgumentException("Please create an instance using an anonymous inner class.");
         }
+    }
+
+    private JsonTypeReference(Type type) {
+        if (type == null) throw new NullPointerException();
+        this.type = type;
+    }
+
+    /**
+     * Gson 解析时直接使用我们自己获取的 Type 可能导致问题
+     */
+    public static <T> JsonTypeReference<T> get(@NotNull Type type) {
+        return new JsonTypeReference<T>(type) {
+        };
     }
 
     public final Type getType() {

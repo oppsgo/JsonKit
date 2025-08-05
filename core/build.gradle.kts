@@ -10,7 +10,7 @@ java {
 dependencies {
     compileOnly("org.jetbrains:annotations:20.1.0")
 
-    testImplementation("junit:junit:4.12")
+    testImplementation("junit:junit:4.13.1")
 
 //    testImplementation(project(":adapter-gson"))
 //    testImplementation("com.google.code.gson:gson:2.10.1")

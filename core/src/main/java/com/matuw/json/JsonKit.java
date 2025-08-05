@@ -25,15 +25,15 @@ public class JsonKit implements JsonAdapter {
     }
 
     /**
-     * 使用默认的 {@link JsonAdapterFactory} 前提是需要先调用 {@link #installDefault(JsonKit)}
+     * 使用默认的 {@link JsonAdapterFactory}
      */
     @NotNull
-    public static JsonKit.Builder newBuilder() {
-        return new Builder();
+    public JsonKit.Builder newBuilder() {
+        return new Builder(factory, options);
     }
 
     @NotNull
-    public static JsonKit.Builder newBuilder(@NotNull JsonAdapterFactory factory) {
+    public static JsonKit.Builder builder(@NotNull JsonAdapterFactory factory) {
         return new Builder(factory);
     }
 
@@ -83,11 +83,12 @@ public class JsonKit implements JsonAdapter {
         private final JsonAdapterFactory factory;
         private JsonOptions options;
 
-        protected Builder() {
-            this.factory = getInstance().factory;
+        protected Builder(JsonAdapterFactory factory, JsonOptions options) {
+            this.factory = factory;
+            this.options = options;
         }
 
-        private Builder(JsonAdapterFactory factory) {
+        protected Builder(JsonAdapterFactory factory) {
             this.factory = Utils.requireNonNull(factory);
         }
 
