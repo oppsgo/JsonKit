@@ -12,5 +12,13 @@ dependencies {
     implementation("com.alibaba:fastjson:1.2.83")
     implementation(project(":core"))
 
-    testImplementation("junit:junit:4.12")
+    testImplementation(project(":test-core"))
+    testImplementation("junit:junit:4.13.1")
+}
+
+tasks.test {
+    useJUnit()
+    testLogging {
+        events("PASSED", "SKIPPED", "FAILED")
+    }
 }

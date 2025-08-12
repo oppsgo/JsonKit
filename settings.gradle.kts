@@ -23,3 +23,5 @@ rootProject.name = "JsonKit"
 include(":core")
 include(":adapter-fastjson")
 include(":adapter-gson")
+
+include(":test-core")

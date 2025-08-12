@@ -18,7 +18,7 @@ import static org.junit.Assert.*;
 /**
  * 抽象测试基类 兼容JDK 1.6 + JUnit 4.12）
  */
-public class JsonKitTest {
+public abstract class JsonKitTest {
     protected JsonAdapter adapter;
     protected User testUser;
     protected List<User> testUserList;
@@ -74,11 +74,7 @@ public class JsonKitTest {
         }
     }
 
-    protected JsonAdapter createAdapter(JsonOptions options) {
-        // TODO 测试对应的框架时需要替换成对应的工厂类
-        JsonAdapterFactory factory = /* com.matuw.json.gson.GsonAdapterFactory.getInstance() */ null;
-        return JsonKit.builder(factory).setOptions(options).build();
-    }
+    protected abstract JsonAdapter createAdapter(JsonOptions options);
 
     @Before
     public void setUp() {

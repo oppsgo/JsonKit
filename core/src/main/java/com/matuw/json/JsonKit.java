@@ -25,6 +25,13 @@ public class JsonKit implements JsonAdapter {
     }
 
     /**
+     * 判断有没有默认值
+     */
+    public static boolean isInitialized() {
+        return defaultInstance != null;
+    }
+
+    /**
      * 使用默认的 {@link JsonAdapterFactory}
      */
     @NotNull
