@@ -2,7 +2,7 @@
 
 [![Release](https://jitpack.io/v/oppsgo/json-kit.svg)](https://jitpack.io/#oppsgo/json-kit)
 
-[English](README.md) · **[使用教程（中文）](docs/guide.zh-CN.md)** · **[Usage guide (EN)](docs/guide.md)**
+[English](README.md) · **[使用教程（中文）](docs/guide.zh-CN.md)** · **[Usage guide (EN)](docs/guide.md)** · [Changelog](CHANGELOG.md)
 
 JsonKit 是面向 JVM / Android 的轻量 JSON 门面库。对外统一 `JsonAdapter` 契约，通过**手动注册**的 Factory 切换 Gson、Fastjson 1.x、Fastjson2、Moshi 等实现——无 SPI、无运行时自动发现，适配 Android 进程模型。
 
@@ -93,6 +93,7 @@ JsonAdapter api = JsonKit.get("api");
 |------|------|
 | [docs/guide.zh-CN.md](docs/guide.zh-CN.md) | 完整中文使用教程 |
 | [docs/guide.md](docs/guide.md) | Complete English usage guide |
+| [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
 | [README.md](README.md) | English project overview |
 
 ## 设计说明

@@ -2,7 +2,7 @@
 
 [![Release](https://jitpack.io/v/oppsgo/json-kit.svg)](https://jitpack.io/#oppsgo/json-kit)
 
-[中文文档](README.zh-CN.md) · **[Usage guide (EN)](docs/guide.md)** · **[使用教程（中文）](docs/guide.zh-CN.md)**
+[中文文档](README.zh-CN.md) · **[Usage guide (EN)](docs/guide.md)** · **[使用教程（中文）](docs/guide.zh-CN.md)** · [Changelog](CHANGELOG.md)
 
 JsonKit is a lightweight JSON facade for JVM and Android. It exposes a single `JsonAdapter` contract and lets you swap backends (Gson, Fastjson 1.x, Fastjson2, Moshi) through manually registered factories—no SPI, no reflection-based discovery.
 
@@ -93,6 +93,7 @@ JsonAdapter api = JsonKit.get("api");
 |-----|-------------|
 | [docs/guide.md](docs/guide.md) | Complete English usage guide |
 | [docs/guide.zh-CN.md](docs/guide.zh-CN.md) | 完整中文使用教程 |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
 | [README.zh-CN.md](README.zh-CN.md) | Chinese project overview |
 
 ## Design notes
