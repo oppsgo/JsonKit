@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -151,6 +152,85 @@ public abstract class JsonContractTest {
                 }));
         assertEquals(2, list.size());
         assertEquals(testUser, list.get(0));
+    }
+
+    @Test
+    public void testReaderWriterListAndMapRoundTrip() throws IOException {
+        StringWriter listWriter = new StringWriter();
+        json.toJson(testUserList, listWriter);
+        String listJson = listWriter.toString();
+        assertTrue(listJson.startsWith("["), listJson);
+
+        List<User> list = requireDecoded(json.fromJson(
+                new StringReader(listJson),
+                new JsonTypeReference<List<User>>() {
+                }));
+        assertEquals(2, list.size());
+        assertEquals(testUser, list.get(0));
+
+        StringWriter mapWriter = new StringWriter();
+        json.toJson(testUserMap, mapWriter);
+        String mapJson = mapWriter.toString();
+        assertTrue(mapJson.startsWith("{"), mapJson);
+
+        Map<String, User> map = requireDecoded(json.fromJson(
+                new StringReader(mapJson),
+                new JsonTypeReference<Map<String, User>>() {
+                }));
+        assertEquals(1, map.size());
+        assertEquals(testUser, map.get("admin"));
+    }
+
+    @Test
+    public void testReaderWriterNestedGenericRoundTrip() throws IOException {
+        List<Map<String, User>> nested = new ArrayList<Map<String, User>>();
+        nested.add(testUserMap);
+
+        StringWriter writer = new StringWriter();
+        json.toJson(nested, writer);
+        String encoded = writer.toString();
+
+        JsonTypeReference<List<Map<String, User>>> reference =
+                new JsonTypeReference<List<Map<String, User>>>() {
+                };
+        List<Map<String, User>> viaReference = requireDecoded(
+                json.fromJson(new StringReader(encoded), reference));
+        assertEquals(1, viaReference.size());
+        assertEquals(testUser, viaReference.get(0).get("admin"));
+
+        Type type = reference.getType();
+        List<Map<String, User>> viaType = requireDecoded(
+                json.fromJson(new StringReader(encoded), type));
+        assertEquals(1, viaType.size());
+        assertEquals(testUser, viaType.get(0).get("admin"));
+    }
+
+    @Test
+    public void testReaderWriterDoNotCloseStreams() throws IOException {
+        TrackingStringWriter writer = new TrackingStringWriter();
+        json.toJson(testUser, writer);
+        assertFalse(writer.closed, "toJson(Writer) must not close the writer");
+        assertTrue(writer.toString().length() > 0);
+
+        TrackingStringReader reader = new TrackingStringReader(writer.toString());
+        User decoded = requireDecoded(json.fromJson(reader, User.class));
+        assertEquals(testUser, decoded);
+        assertFalse(reader.closed, "fromJson(Reader, Class) must not close the reader");
+
+        TrackingStringReader typedReader = new TrackingStringReader(requireJson(json.toJson(testUserList)));
+        List<User> list = requireDecoded(json.fromJson(
+                typedReader,
+                new JsonTypeReference<List<User>>() {
+                }));
+        assertEquals(2, list.size());
+        assertFalse(typedReader.closed, "fromJson(Reader, JsonTypeReference) must not close the reader");
+
+        TrackingStringReader typeReader = new TrackingStringReader(requireJson(json.toJson(testUserMap)));
+        Type mapType = new JsonTypeReference<Map<String, User>>() {
+        }.getType();
+        Map<String, User> map = requireDecoded(json.fromJson(typeReader, mapType));
+        assertEquals(testUser, map.get("admin"));
+        assertFalse(typeReader.closed, "fromJson(Reader, Type) must not close the reader");
     }
 
     @Test
@@ -422,6 +502,32 @@ public abstract class JsonContractTest {
     private static void assertContainsAny(String actual, String first, String second) {
         assertTrue(actual.contains(first) || actual.contains(second),
                 "Expected one of [" + first + ", " + second + "] in: " + actual);
+    }
+
+    /** Records whether {@link #close()} was called; used to assert adapters never close caller streams. */
+    private static final class TrackingStringReader extends StringReader {
+        boolean closed;
+
+        TrackingStringReader(String data) {
+            super(data);
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+            super.close();
+        }
+    }
+
+    /** Records whether {@link #close()} was called; used to assert adapters never close caller streams. */
+    private static final class TrackingStringWriter extends StringWriter {
+        boolean closed;
+
+        @Override
+        public void close() throws IOException {
+            closed = true;
+            super.close();
+        }
     }
 
     public static class User {
