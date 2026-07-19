@@ -1,5 +1,7 @@
 # JsonKit
 
+[![Release](https://jitpack.io/v/com.gitee.oppsgo/json-kit.svg)](https://jitpack.io/#com.gitee.oppsgo/json-kit)
+
 [English](README.md)
 
 JsonKit 是面向 JVM / Android 的轻量 JSON 门面库。对外统一 `JsonAdapter` 契约，通过**手动注册**的 Factory 切换 Gson、Fastjson 1.x、Fastjson2 等实现——无 SPI、无运行时自动发现，适配 Android 进程模型。
