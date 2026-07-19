@@ -27,7 +27,9 @@ JsonKit 是面向 JVM / Android 的轻量 JSON 门面库。对外统一 `JsonAda
 
 ## 依赖
 
-### JitPack
+### JitPack（Gitee）
+
+从 [gitee.com/oppsgo/json-kit](https://gitee.com/oppsgo/json-kit) 构建；artifactId 对应仓库名 `json-kit`。
 
 1. 添加仓库：
 
@@ -40,23 +42,20 @@ dependencyResolutionManagement {
 }
 ```
 
-2. 添加模块（将 `Tag` 换成发布标签，例如 `1.0.1`）：
+2. 添加依赖（将 `Tag` 换成发布标签，例如 `1.0.1`）：
 
 ```kotlin
-// 仅 core
-implementation("com.github.oppsgo.JsonKit:core:Tag")
+// 全部模块（聚合）
+implementation("com.gitee.oppsgo:json-kit:Tag")
 
-// Gson 后端（会传递依赖 :core）
-implementation("com.github.oppsgo.JsonKit:json-gson:Tag")
-
-// Fastjson2（推荐）
-implementation("com.github.oppsgo.JsonKit:json-fastjson2:Tag")
-
-// Fastjson 1.x（兼容）
-implementation("com.github.oppsgo.JsonKit:json-fastjson:Tag")
+// 或按需选用单个模块：
+implementation("com.gitee.oppsgo.json-kit:core:Tag")
+implementation("com.gitee.oppsgo.json-kit:json-gson:Tag")       // Gson（含 core）
+implementation("com.gitee.oppsgo.json-kit:json-fastjson2:Tag")  // Fastjson2（推荐）
+implementation("com.gitee.oppsgo.json-kit:json-fastjson:Tag")   // Fastjson 1.x
 ```
 
-构建状态 / 产物：[jitpack.io/#oppsgo/JsonKit](https://jitpack.io/#oppsgo/JsonKit)
+构建状态 / 产物：[jitpack.io/#com.gitee/oppsgo/json-kit](https://jitpack.io/#com.gitee/oppsgo/json-kit)
 
 ### 本地 / composite build
 

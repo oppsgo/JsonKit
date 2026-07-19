@@ -27,7 +27,9 @@ JsonKit is a lightweight JSON facade for JVM and Android. It exposes a single `J
 
 ## Installation
 
-### JitPack
+### JitPack (Gitee)
+
+Published from [gitee.com/oppsgo/json-kit](https://gitee.com/oppsgo/json-kit). Artifact id follows the Gitee repo name `json-kit`.
 
 1. Add the repository:
 
@@ -40,23 +42,20 @@ dependencyResolutionManagement {
 }
 ```
 
-2. Add a module (replace `Tag` with a release tag such as `1.0.1`):
+2. Add a dependency (replace `Tag` with a release tag such as `1.0.1`):
 
 ```kotlin
-// Core only
-implementation("com.github.oppsgo.JsonKit:core:Tag")
+// All modules (aggregate)
+implementation("com.gitee.oppsgo:json-kit:Tag")
 
-// Gson backend (pulls in :core transitively)
-implementation("com.github.oppsgo.JsonKit:json-gson:Tag")
-
-// Fastjson2 (recommended)
-implementation("com.github.oppsgo.JsonKit:json-fastjson2:Tag")
-
-// Fastjson 1.x (compatibility)
-implementation("com.github.oppsgo.JsonKit:json-fastjson:Tag")
+// Or pick one module:
+implementation("com.gitee.oppsgo.json-kit:core:Tag")
+implementation("com.gitee.oppsgo.json-kit:json-gson:Tag")       // Gson (+ core)
+implementation("com.gitee.oppsgo.json-kit:json-fastjson2:Tag")  // Fastjson2 (recommended)
+implementation("com.gitee.oppsgo.json-kit:json-fastjson:Tag")   // Fastjson 1.x
 ```
 
-Build status / artifacts: [jitpack.io/#oppsgo/JsonKit](https://jitpack.io/#oppsgo/JsonKit)
+Build status / artifacts: [jitpack.io/#com.gitee/oppsgo/json-kit](https://jitpack.io/#com.gitee/oppsgo/json-kit)
 
 ### Local / composite build
 
