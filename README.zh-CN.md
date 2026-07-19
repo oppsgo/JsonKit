@@ -1,13 +1,14 @@
 # JsonKit
 
-[![Release](https://jitpack.io/v/com.gitee.oppsgo/json-kit.svg)](https://jitpack.io/#com.gitee.oppsgo/json-kit)
+[![Release](https://jitpack.io/v/oppsgo/json-kit.svg)](https://jitpack.io/#oppsgo/json-kit)
 
 [English](README.md)
 
 JsonKit 是面向 JVM / Android 的轻量 JSON 门面库。对外统一 `JsonAdapter` 契约，通过**手动注册**的 Factory 切换 Gson、Fastjson 1.x、Fastjson2 等实现——无 SPI、无运行时自动发现，适配 Android 进程模型。
 
 **包名：** `io.github.oppsgo.json`  
-**Adapter：** `io.github.oppsgo.json.gson` · `.fastjson` · `.fastjson2`
+**Adapter：** `io.github.oppsgo.json.gson` · `.fastjson` · `.fastjson2`  
+**仓库：** [github.com/oppsgo/json-kit](https://github.com/oppsgo/json-kit) · [gitee.com/oppsgo/json-kit](https://gitee.com/oppsgo/json-kit)
 
 ## 特性
 
@@ -29,9 +30,9 @@ JsonKit 是面向 JVM / Android 的轻量 JSON 门面库。对外统一 `JsonAda
 
 ## 依赖
 
-### JitPack（Gitee）
+### JitPack（GitHub）
 
-从 [gitee.com/oppsgo/json-kit](https://gitee.com/oppsgo/json-kit) 构建；artifactId 对应仓库名 `json-kit`。
+从 [github.com/oppsgo/json-kit](https://github.com/oppsgo/json-kit) 构建。
 
 1. 添加仓库：
 
@@ -47,17 +48,17 @@ dependencyResolutionManagement {
 2. 添加依赖（将版本换成标签，例如 `1.0.3`）：
 
 ```kotlin
-// 全部模块（聚合）— 注意：group 是 com.gitee.oppsgo（用点连接），必须带版本号
-implementation("com.gitee.oppsgo:json-kit:1.0.3")
+// 全部模块（聚合）
+implementation("com.github.oppsgo:json-kit:1.0.3")
 
 // 或按需选用单个模块：
-implementation("com.gitee.oppsgo.json-kit:core:1.0.3")
-implementation("com.gitee.oppsgo.json-kit:json-gson:1.0.3")       // Gson（含 core）
-implementation("com.gitee.oppsgo.json-kit:json-fastjson2:1.0.3")  // Fastjson2（推荐）
-implementation("com.gitee.oppsgo.json-kit:json-fastjson:1.0.3")   // Fastjson 1.x
+implementation("com.github.oppsgo.json-kit:core:1.0.3")
+implementation("com.github.oppsgo.json-kit:json-gson:1.0.3")       // Gson（含 core）
+implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.3")  // Fastjson2（推荐）
+implementation("com.github.oppsgo.json-kit:json-fastjson:1.0.3")   // Fastjson 1.x
 ```
 
-构建状态 / 产物：在 [jitpack.io](https://jitpack.io/) 搜索框粘贴 `https://gitee.com/oppsgo/json-kit` 后 Look up
+构建状态 / 产物：[jitpack.io/#oppsgo/json-kit](https://jitpack.io/#oppsgo/json-kit)
 
 ### 本地 / composite build
 

@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.animalsniffer) apply false
 }
 
-group = "com.gitee.oppsgo"
+group = "com.github.oppsgo"
 version = "1.0.3"
 
 subprojects {
