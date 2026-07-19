@@ -20,8 +20,10 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "JsonKit"
-include(":core")
-include(":adapter-fastjson")
-include(":adapter-gson")
 
-include(":test-core")
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
+include(":core")
+include(":adapter:json-gson")
+include(":adapter:json-fastjson")
+include(":adapter:json-fastjson2")

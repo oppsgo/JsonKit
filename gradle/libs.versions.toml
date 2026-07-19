@@ -1,5 +1,25 @@
 [versions]
+jetbrainsAnnotations = "20.1.0"
+gson = "2.10.1"
+fastjson = "1.2.83"
+fastjson2 = "2.0.53"
+junit = "5.10.2"
+animalsniffer = "2.0.1"
+gummyBears = "0.14.0"
 
 [libraries]
+jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrainsAnnotations" }
+
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+fastjson = { group = "com.alibaba", name = "fastjson", version.ref = "fastjson" }
+fastjson2 = { group = "com.alibaba.fastjson2", name = "fastjson2", version.ref = "fastjson2" }
+
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+
+# Animal Sniffer signatures for Android API 19 (+ D8 desugared methods)
+gummy-bears-api19 = { group = "com.toasttab.android", name = "gummy-bears-api-19", version.ref = "gummyBears" }
 
 [plugins]
+animalsniffer = { id = "ru.vyarus.animalsniffer", version.ref = "animalsniffer" }

@@ -1,53 +1,116 @@
 # JsonKit
-`JsonKit` 用于统一使用json解析,方便切换`fastjson`,`gson`等内部实现
 
-主要用于`Android`平台 后续适配也会以`Android`平台优先
+[中文文档](README.zh-CN.md)
 
-## 使用
+JsonKit is a lightweight JSON facade for JVM and Android. It exposes a single `JsonAdapter` contract and lets you swap backends (Gson, Fastjson 1.x, Fastjson2) through manually registered factories—no SPI, no reflection-based discovery.
 
-### 配置默认的解析库
-如使用 `gson` 实现
-1. 添加`gson`的依赖,引入`adapter-gson`
-   ```groovy
-   implementation(project(":core"))
-   implementation("com.google.code.gson:gson:2.10.1")
-   implementation(project(":adapter-gson"))
-    ```
-2. 设置为默认的解析
-   ```java
-   JsonAdapterFactory factory = GsonAdapterFactory.getInstance();
-   JsonOptions options = new JsonOptions.Builder().setSerializeNulls(false).build();
-   JsonKit instance = JsonKit.builder(factory).setOptions(options).build();
-   JsonKit.installDefault(instance);
-    ```
-3. 使用
-   ```java
-   JsonKit jsonKit = JsonKit.getInstance();
-   jsonKit.toJson(xxx);
-   jsonKit.fromJson("xx",Xxx.class);
-   ```
-4. 创建自定义`JsonKit`配置
-   ```java
-   JsonAdapterFactory factory = GsonAdapterFactory.getInstance();
-   JsonOptions options = new JsonOptions.Builder().setSerializeNulls(false).build();
-   JsonKit jsonKit = JsonKit.builder(factory).setOptions(options).build();
-   jsonKit.toJson(xxx);
-   jsonKit.fromJson("xx",Xxx.class);
-   
-   // 获取到的是 JsonOptions 的副本,不支持修改
-   JsonOptions opt = jsonKit.getOptions(); 
-   ```
-   
-5. 在当前`JsonKit`基础上创建新的`JsonKit`对象, 复用`JsonAdapterFactory`
-   ```java
-   JsonKit jsonKit = JsonKit.getInstance()
-        .newBuilder()
-        .setOptions(options)
+**Package:** `io.github.oppos.json`  
+**Adapters:** `io.github.oppos.json.gson` · `.fastjson` · `.fastjson2`
+
+## Features
+
+- **Stable facade** — Call sites depend on `JsonAdapter` / `JsonKit`, not on a concrete engine.
+- **Manual factory registry** — Android-friendly; register at process start, resolve by name at runtime.
+- **Reusable adapters** — Engine factories close over `JsonOptions` and return the same `JsonAdapter` instance from `create()`.
+- **Unified annotations** — `@JsonProperty`, `@JsonIgnore`, `@JsonAlias`, `@JsonIgnoreProperties` interpreted by every adapter.
+- **Streaming API** — `Reader` / `Writer` overloads; callers own stream lifecycle (adapters never close them).
+- **Generics** — `JsonTypeReference<T>` for `List` / `Map` and similar parameterized types.
+
+## Modules
+
+| Module | Role |
+|--------|------|
+| `:core` | `JsonKit`, `JsonAdapter`, `JsonOptions`, `JsonTypeReference`, annotations |
+| `:adapter:json-gson` | Gson backend + `GsonAdapterFactory` |
+| `:adapter:json-fastjson2` | Fastjson2 backend + `Fastjson2AdapterFactory` (**recommended** Fastjson line) |
+| `:adapter:json-fastjson` | Fastjson 1.x backend + `FastjsonAdapterFactory` (compatibility) |
+
+## Installation
+
+Gson example (Gradle):
+
+```groovy
+implementation(project(":core"))
+implementation(libs.gson)
+implementation(project(":adapter:json-gson"))
+```
+
+Other backends:
+
+```groovy
+// Fastjson2 (recommended)
+implementation(project(":adapter:json-fastjson2"))
+
+// Fastjson 1.x (compatibility)
+implementation(project(":adapter:json-fastjson"))
+```
+
+## Quick start
+
+### 1. Register factories at startup
+
+`name == null` selects the default factory. Named entries hold alternate options or engines. Each `XxxAdapterFactory.of(...)` reuses one adapter for the lifetime of that factory.
+
+```java
+JsonOptions options = new JsonOptions.Builder()
+        .setSerializeNulls(false)
         .build();
-   ```
 
+JsonKit.setDefault(GsonAdapterFactory.of(options));
+// Equivalent: JsonKit.register(null, GsonAdapterFactory.of(options));
 
-   
-## 下一步计划
-- 使用统一注解+反射的方式（调研中）
-- 使用统一注解,在编译时进行注解转换 
+JsonKit.register("api", Fastjson2AdapterFactory.of(apiOptions));
+```
+
+### 2. Resolve and use
+
+```java
+JsonAdapter json = JsonKit.getDefault();
+String payload = json.toJson(model);
+User user = json.fromJson(payload, User.class);
+
+JsonAdapter api = JsonKit.get("api");
+```
+
+### 3. Use an adapter without the facade
+
+```java
+JsonAdapter local = new GsonAdapter(options);
+```
+
+## Registry API
+
+| Method | Description |
+|--------|-------------|
+| `setDefault(Factory)` | Registers the default factory (`register(null, …)`) |
+| `register(String, Factory)` | Registers under `name`; `null` means default |
+| `getDefault()` / `get(String)` | Obtains an adapter via `Factory.create()` |
+| `hasDefault()` / `has(String)` | Registration checks |
+| `clear()` | Clears all entries (tests / teardown) |
+
+## Annotations
+
+Place models on the unified annotations in `:core`. All three adapters honor them at runtime:
+
+```java
+public class Profile {
+    @JsonProperty("user_name")
+    public String userName;
+
+    @JsonIgnore
+    public String password;
+
+    @JsonAlias({"nick", "nickname"})
+    public String displayName;
+}
+```
+
+## Design notes
+
+- Factories decide caching; library `XxxAdapterFactory` implementations always reuse a single adapter.
+- Static factory methods are named `of()` / `of(JsonOptions)` so they do not clash with `JsonAdapter.Factory#create()`.
+- Prefer **Fastjson2** over Fastjson 1.x for new work; keep 1.x only when compatibility requires it.
+
+## Roadmap
+
+- Compile-time rewriting of unified annotations into engine-native annotations

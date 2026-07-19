@@ -11,3 +11,6 @@ local.properties
 gradle/wrapper/gradle-wrapper.jar
 target
 scripts/src/test
+
+.cursor
+openspec

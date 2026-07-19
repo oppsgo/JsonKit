@@ -1,12 +1,18 @@
 plugins {
     id("java")
+    id("java-test-fixtures")
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_6
-    targetCompatibility = JavaVersion.VERSION_1_6
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 dependencies {
-    compileOnly("org.jetbrains:annotations:20.1.0")
+    compileOnly(libs.jetbrains.annotations)
+
+    // Exported to adapter modules via testFixtures(project(":core"));
+    // core's own test source set also depends on testFixtures.
+    testFixturesApi(platform(libs.junit.bom))
+    testFixturesApi(libs.junit.jupiter)
 }
