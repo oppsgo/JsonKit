@@ -4,8 +4,8 @@
 
 JsonKit is a lightweight JSON facade for JVM and Android. It exposes a single `JsonAdapter` contract and lets you swap backends (Gson, Fastjson 1.x, Fastjson2) through manually registered factories—no SPI, no reflection-based discovery.
 
-**Package:** `io.github.oppos.json`  
-**Adapters:** `io.github.oppos.json.gson` · `.fastjson` · `.fastjson2`
+**Package:** `io.github.oppsgo.json`  
+**Adapters:** `io.github.oppsgo.json.gson` · `.fastjson` · `.fastjson2`
 
 ## Features
 
@@ -27,22 +27,43 @@ JsonKit is a lightweight JSON facade for JVM and Android. It exposes a single `J
 
 ## Installation
 
-Gson example (Gradle):
+### JitPack
 
-```groovy
-implementation(project(":core"))
-implementation(libs.gson)
-implementation(project(":adapter:json-gson"))
+1. Add the repository:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
 ```
 
-Other backends:
+2. Add a module (replace `Tag` with a release tag such as `1.0.1`):
 
-```groovy
+```kotlin
+// Core only
+implementation("com.github.oppsgo.JsonKit:core:Tag")
+
+// Gson backend (pulls in :core transitively)
+implementation("com.github.oppsgo.JsonKit:json-gson:Tag")
+
 // Fastjson2 (recommended)
-implementation(project(":adapter:json-fastjson2"))
+implementation("com.github.oppsgo.JsonKit:json-fastjson2:Tag")
 
 // Fastjson 1.x (compatibility)
-implementation(project(":adapter:json-fastjson"))
+implementation("com.github.oppsgo.JsonKit:json-fastjson:Tag")
+```
+
+Build status / artifacts: [jitpack.io/#oppsgo/JsonKit](https://jitpack.io/#oppsgo/JsonKit)
+
+### Local / composite build
+
+```kotlin
+implementation(project(":core"))
+implementation(project(":adapter:json-gson"))
+// or :adapter:json-fastjson2 / :adapter:json-fastjson
 ```
 
 ## Quick start

@@ -1,5 +1,5 @@
 plugins {
-    id("java")
+    `java-library`
 }
 
 java {
@@ -9,8 +9,8 @@ java {
 
 dependencies {
     compileOnly(libs.jetbrains.annotations)
+    api(projects.core)
     implementation(libs.fastjson)
-    implementation(projects.core)
 
     testImplementation(testFixtures(projects.core))
 }

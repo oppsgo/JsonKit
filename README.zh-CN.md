@@ -4,8 +4,8 @@
 
 JsonKit 是面向 JVM / Android 的轻量 JSON 门面库。对外统一 `JsonAdapter` 契约，通过**手动注册**的 Factory 切换 Gson、Fastjson 1.x、Fastjson2 等实现——无 SPI、无运行时自动发现，适配 Android 进程模型。
 
-**包名：** `io.github.oppos.json`  
-**Adapter：** `io.github.oppos.json.gson` · `.fastjson` · `.fastjson2`
+**包名：** `io.github.oppsgo.json`  
+**Adapter：** `io.github.oppsgo.json.gson` · `.fastjson` · `.fastjson2`
 
 ## 特性
 
@@ -27,22 +27,43 @@ JsonKit 是面向 JVM / Android 的轻量 JSON 门面库。对外统一 `JsonAda
 
 ## 依赖
 
-以 Gson 为例（Gradle）：
+### JitPack
 
-```groovy
-implementation(project(":core"))
-implementation(libs.gson)
-implementation(project(":adapter:json-gson"))
+1. 添加仓库：
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
 ```
 
-其他引擎：
+2. 添加模块（将 `Tag` 换成发布标签，例如 `1.0.1`）：
 
-```groovy
+```kotlin
+// 仅 core
+implementation("com.github.oppsgo.JsonKit:core:Tag")
+
+// Gson 后端（会传递依赖 :core）
+implementation("com.github.oppsgo.JsonKit:json-gson:Tag")
+
 // Fastjson2（推荐）
-implementation(project(":adapter:json-fastjson2"))
+implementation("com.github.oppsgo.JsonKit:json-fastjson2:Tag")
 
 // Fastjson 1.x（兼容）
-implementation(project(":adapter:json-fastjson"))
+implementation("com.github.oppsgo.JsonKit:json-fastjson:Tag")
+```
+
+构建状态 / 产物：[jitpack.io/#oppsgo/JsonKit](https://jitpack.io/#oppsgo/JsonKit)
+
+### 本地 / composite build
+
+```kotlin
+implementation(project(":core"))
+implementation(project(":adapter:json-gson"))
+// 或 :adapter:json-fastjson2 / :adapter:json-fastjson
 ```
 
 ## 快速开始

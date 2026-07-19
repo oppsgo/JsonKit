@@ -1,6 +1,6 @@
 plugins {
-    id("java")
-    id("java-test-fixtures")
+    `java-library`
+    `java-test-fixtures`
 }
 
 java {

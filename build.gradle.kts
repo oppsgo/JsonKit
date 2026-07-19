@@ -2,11 +2,28 @@ plugins {
     alias(libs.plugins.animalsniffer) apply false
 }
 
-version = "0.0.1"
+group = "com.github.oppsgo"
+version = "1.0.1"
 
 subprojects {
+    group = rootProject.group
+    version = rootProject.version
+
     pluginManager.withPlugin("java") {
         pluginManager.apply(libs.plugins.animalsniffer.get().pluginId)
+        pluginManager.apply("maven-publish")
+
+        extensions.configure<JavaPluginExtension> {
+            withSourcesJar()
+        }
+
+        extensions.configure<PublishingExtension> {
+            publications {
+                create<MavenPublication>("maven") {
+                    from(components["java"])
+                }
+            }
+        }
 
         tasks.withType<JavaCompile>().configureEach {
             options.compilerArgs.add("-Xlint:-options")
@@ -17,12 +34,12 @@ subprojects {
             "testRuntimeOnly"(platform(libs.junit.bom))
             "testRuntimeOnly"(libs.junit.platform.launcher)
         }
+    }
 
-        tasks.withType<Test>() {
-            useJUnitPlatform()
-            testLogging {
-                events("PASSED", "SKIPPED", "FAILED")
-            }
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+        testLogging {
+            events("PASSED", "SKIPPED", "FAILED")
         }
     }
 
