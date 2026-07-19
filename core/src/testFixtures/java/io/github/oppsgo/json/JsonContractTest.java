@@ -15,16 +15,24 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
 
 import io.github.oppsgo.json.adapter.JsonAdapter;
 import io.github.oppsgo.json.annotation.JsonAlias;
+import io.github.oppsgo.json.annotation.JsonDeserialize;
+import io.github.oppsgo.json.annotation.JsonFormat;
 import io.github.oppsgo.json.annotation.JsonIgnore;
 import io.github.oppsgo.json.annotation.JsonIgnoreProperties;
 import io.github.oppsgo.json.annotation.JsonProperty;
+import io.github.oppsgo.json.annotation.JsonSerialize;
+import io.github.oppsgo.json.convert.JsonFieldDeserializer;
+import io.github.oppsgo.json.convert.JsonFieldSerializer;
 import io.github.oppsgo.json.reflect.JsonTypeReference;
 
 /**
@@ -407,6 +415,154 @@ public abstract class JsonContractTest {
     }
 
     @Test
+    public void testFieldStrategyBothDirections() {
+        StrategyBoth model = new StrategyBoth();
+        model.secret = "hello";
+        String encoded = requireJson(json.toJson(model));
+        assertContains(encoded, "\"secret\":\"HELLO\"");
+        StrategyBoth decoded = requireDecoded(json.fromJson("{\"secret\":\"WORLD\"}", StrategyBoth.class));
+        assertEquals("world", decoded.secret);
+    }
+
+    @Test
+    public void testFieldStrategySerializeOnly() {
+        StrategySerializeOnly model = new StrategySerializeOnly();
+        model.code = 7;
+        String encoded = requireJson(json.toJson(model));
+        assertContains(encoded, "\"code\":\"x7\"");
+        StrategySerializeOnly decoded = requireDecoded(json.fromJson("{\"code\":9}", StrategySerializeOnly.class));
+        assertEquals(9, decoded.code);
+    }
+
+    @Test
+    public void testFieldStrategyDeserializeOnly() {
+        StrategyDeserializeOnly model = new StrategyDeserializeOnly();
+        model.tag = "keep";
+        String encoded = requireJson(json.toJson(model));
+        assertContainsAny(encoded, "\"tag\":\"keep\"", "\"tag\": \"keep\"");
+        StrategyDeserializeOnly decoded =
+                requireDecoded(json.fromJson("{\"tag\":\"AbC\"}", StrategyDeserializeOnly.class));
+        assertEquals("abc", decoded.tag);
+    }
+
+    @Test
+    public void testFieldStrategyNullBypassAndIgnore() {
+        StrategyWithNullAndIgnore model = new StrategyWithNullAndIgnore();
+        model.visible = "a";
+        model.hidden = "b";
+        model.nullable = null;
+        JsonAdapter omitNulls = createAdapter(new JsonOptions.Builder().setSerializeNulls(false).build());
+        String encoded = requireJson(omitNulls.toJson(model));
+        assertContains(encoded, "\"visible\":\"A\"");
+        assertNotContains(encoded, "hidden");
+        assertNotContains(encoded, "nullable");
+
+        StrategyWithNullAndIgnore decoded = requireDecoded(json.fromJson(
+                "{\"visible\":\"Z\",\"hidden\":\"nope\",\"nullable\":null}",
+                StrategyWithNullAndIgnore.class));
+        assertEquals("z", decoded.visible);
+        assertNull(decoded.hidden);
+        assertNull(decoded.nullable);
+    }
+
+    @Test
+    public void testFieldStrategyWithRename() {
+        StrategyRenamed model = new StrategyRenamed();
+        model.value = "ab";
+        String encoded = requireJson(json.toJson(model));
+        assertContains(encoded, "\"code_name\":\"AB\"");
+        StrategyRenamed decoded =
+                requireDecoded(json.fromJson("{\"code_name\":\"cd\"}", StrategyRenamed.class));
+        assertEquals("cd", decoded.value);
+    }
+
+    @Test
+    public void testFieldStrategyMissingConstructorFails() {
+        BrokenStrategyModel model = new BrokenStrategyModel();
+        model.value = "x";
+        RuntimeException ex = assertThrows(RuntimeException.class, new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() {
+                json.toJson(model);
+            }
+        });
+        Throwable cursor = ex;
+        boolean found = false;
+        while (cursor != null) {
+            String message = cursor.getMessage();
+            if (message != null && message.contains("BrokenSerializer")) {
+                found = true;
+                break;
+            }
+            cursor = cursor.getCause();
+        }
+        assertTrue(found, "Expected strategy class name in exception chain: " + ex);
+    }
+
+    @Test
+    public void testJsonFormatStringPatternRoundTrip() {
+        FormatStringModel model = new FormatStringModel();
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.clear();
+        calendar.set(2020, Calendar.JANUARY, 2, 3, 4, 5);
+        model.when = calendar.getTime();
+        model.cal = calendar;
+
+        String encoded = requireJson(json.toJson(model));
+        assertContains(encoded, "\"when\":\"2020-01-02 03:04:05\"");
+        assertContains(encoded, "\"cal\":\"2020-01-02 03:04:05\"");
+
+        FormatStringModel decoded = requireDecoded(json.fromJson(
+                "{\"when\":\"2020-01-02 03:04:05\",\"cal\":\"2020-01-02 03:04:05\"}",
+                FormatStringModel.class));
+        assertEquals(model.when.getTime(), decoded.when.getTime());
+        assertEquals(model.cal.getTimeInMillis(), decoded.cal.getTimeInMillis());
+    }
+
+    @Test
+    public void testJsonFormatNumberEpochRoundTrip() {
+        FormatNumberModel model = new FormatNumberModel();
+        model.when = new Date(1_600_000_000_000L);
+        String encoded = requireJson(json.toJson(model));
+        assertContainsAny(encoded, "\"when\":1600000000000", "\"when\": 1600000000000");
+        FormatNumberModel decoded =
+                requireDecoded(json.fromJson("{\"when\":1600000000000}", FormatNumberModel.class));
+        assertEquals(1_600_000_000_000L, decoded.when.getTime());
+    }
+
+    @Test
+    public void testJsonSerializeShadowsJsonFormat() {
+        StrategyOverFormat model = new StrategyOverFormat();
+        model.when = new Date(0L);
+        String encoded = requireJson(json.toJson(model));
+        assertContains(encoded, "\"when\":\"STRATEGY\"");
+        assertNotContains(encoded, "1970");
+    }
+
+    @Test
+    public void testJsonFormatUnsupportedTypeFails() {
+        FormatUnsupportedModel model = new FormatUnsupportedModel();
+        model.value = "x";
+        RuntimeException ex = assertThrows(RuntimeException.class, new org.junit.jupiter.api.function.Executable() {
+            @Override
+            public void execute() {
+                json.toJson(model);
+            }
+        });
+        Throwable cursor = ex;
+        boolean found = false;
+        while (cursor != null) {
+            String message = cursor.getMessage();
+            if (message != null && message.contains("@JsonFormat") && message.contains("String")) {
+                found = true;
+                break;
+            }
+            cursor = cursor.getCause();
+        }
+        assertTrue(found, "Expected unsupported-type message in exception chain: " + ex);
+    }
+
+    @Test
     public void testDefaultFactory() {
         final JsonAdapter shared = json;
         JsonKit.setDefault(new JsonAdapter.Factory() {
@@ -601,5 +757,108 @@ public abstract class JsonContractTest {
 
     public static class Employee extends Person {
         public String title;
+    }
+
+    public static class UpperSerializer implements JsonFieldSerializer<String> {
+        @Override
+        public Object serialize(String value) {
+            return value.toUpperCase();
+        }
+    }
+
+    public static class LowerDeserializer implements JsonFieldDeserializer<String> {
+        @Override
+        public String deserialize(Object jsonValue, Type fieldType) {
+            return String.valueOf(jsonValue).toLowerCase();
+        }
+    }
+
+    public static class PrefixIntSerializer implements JsonFieldSerializer<Integer> {
+        @Override
+        public Object serialize(Integer value) {
+            return "x" + value;
+        }
+    }
+
+    public static class StrategyBoth {
+        @JsonSerialize(using = UpperSerializer.class)
+        @JsonDeserialize(using = LowerDeserializer.class)
+        public String secret;
+    }
+
+    public static class StrategySerializeOnly {
+        @JsonSerialize(using = PrefixIntSerializer.class)
+        public int code;
+    }
+
+    public static class StrategyDeserializeOnly {
+        @JsonDeserialize(using = LowerDeserializer.class)
+        public String tag;
+    }
+
+    public static class StrategyWithNullAndIgnore {
+        @JsonSerialize(using = UpperSerializer.class)
+        @JsonDeserialize(using = LowerDeserializer.class)
+        public String visible;
+
+        @JsonIgnore
+        @JsonSerialize(using = UpperSerializer.class)
+        public String hidden;
+
+        @JsonSerialize(using = UpperSerializer.class)
+        public String nullable;
+    }
+
+    public static class StrategyRenamed {
+        @JsonProperty("code_name")
+        @JsonSerialize(using = UpperSerializer.class)
+        @JsonDeserialize(using = LowerDeserializer.class)
+        public String value;
+    }
+
+    public static class BrokenSerializer implements JsonFieldSerializer<String> {
+        public BrokenSerializer(String required) {
+        }
+
+        @Override
+        public Object serialize(String value) {
+            return value;
+        }
+    }
+
+    public static class BrokenStrategyModel {
+        @JsonSerialize(using = BrokenSerializer.class)
+        public String value;
+    }
+
+    public static class FormatStringModel {
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "UTC")
+        public Date when;
+
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "UTC")
+        public Calendar cal;
+    }
+
+    public static class FormatNumberModel {
+        @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+        public Date when;
+    }
+
+    public static class StrategyDateSerializer implements JsonFieldSerializer<Date> {
+        @Override
+        public Object serialize(Date value) {
+            return "STRATEGY";
+        }
+    }
+
+    public static class StrategyOverFormat {
+        @JsonSerialize(using = StrategyDateSerializer.class)
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "UTC")
+        public Date when;
+    }
+
+    public static class FormatUnsupportedModel {
+        @JsonFormat(pattern = "yyyy-MM-dd", timezone = "UTC")
+        public String value;
     }
 }

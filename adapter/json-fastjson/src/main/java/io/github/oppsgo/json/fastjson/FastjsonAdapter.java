@@ -8,6 +8,7 @@ import com.alibaba.fastjson.serializer.NameFilter;
 import com.alibaba.fastjson.serializer.PropertyFilter;
 import com.alibaba.fastjson.serializer.SerializeFilter;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson.serializer.ValueFilter;
 import com.alibaba.fastjson.util.TypeUtils;
 
 import org.jetbrains.annotations.NotNull;
@@ -23,6 +24,8 @@ import java.util.Set;
 
 import io.github.oppsgo.json.JsonOptions;
 import io.github.oppsgo.json.adapter.JsonAdapter;
+import io.github.oppsgo.json.convert.FieldConverters;
+import io.github.oppsgo.json.convert.StrategyInstanceCache;
 import io.github.oppsgo.json.reflect.JsonTypeReference;
 import io.github.oppsgo.json.support.BindingCache;
 import io.github.oppsgo.json.support.BindingMeta;
@@ -40,6 +43,7 @@ import io.github.oppsgo.json.support.BindingMeta;
 public class FastjsonAdapter implements JsonAdapter {
 
     private final BindingCache bindings;
+    private final StrategyInstanceCache strategies;
     private final SerializeFilter[] filters;
     private final SerializerFeature[] features;
     private final JsonOptions options;
@@ -70,7 +74,9 @@ public class FastjsonAdapter implements JsonAdapter {
         JsonOptions resolved = options != null ? new JsonOptions(options) : JsonOptions.defaults();
         this.options = resolved;
         this.bindings = bindings != null ? bindings : new BindingCache();
-        this.filters = new SerializeFilter[]{createNameFilter(), createPropertyFilter()};
+        this.strategies = new StrategyInstanceCache();
+        this.filters = new SerializeFilter[]{
+                createNameFilter(), createPropertyFilter(), createValueFilter()};
         if (resolved.isSerializeNulls()) {
             this.features = new SerializerFeature[]{SerializerFeature.WriteMapNullValue};
         } else {
@@ -111,6 +117,27 @@ public class FastjsonAdapter implements JsonAdapter {
                     return !meta.getIgnoredPropertyNames().contains(name);
                 }
                 return !meta.shouldIgnoreSerialize(field);
+            }
+        };
+    }
+
+    private ValueFilter createValueFilter() {
+        return new ValueFilter() {
+            @Override
+            public Object process(Object object, String name, Object value) {
+                if (object == null || name == null || value == null) {
+                    return value;
+                }
+                BindingMeta meta = bindings.get(object.getClass());
+                Field field = meta.findFieldByJavaOrJsonName(name);
+                if (field == null) {
+                    return value;
+                }
+                BindingMeta.FieldBinding binding = meta.bindingOf(field);
+                if (binding == null || !binding.hasSerializeConverter()) {
+                    return value;
+                }
+                return FieldConverters.serialize(binding, value, strategies);
             }
         };
     }
@@ -226,6 +253,11 @@ public class FastjsonAdapter implements JsonAdapter {
             Object value = entry.getValue();
             if (field != null) {
                 value = remapNode(value, field.getGenericType());
+                BindingMeta.FieldBinding binding = meta.bindingOf(field);
+                if (binding != null && binding.hasDeserializeConverter() && value != null) {
+                    value = FieldConverters.deserialize(
+                            binding, value, field.getGenericType(), strategies);
+                }
             }
             out.put(fieldName, value);
         }

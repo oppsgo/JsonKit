@@ -2,8 +2,10 @@ package io.github.oppsgo.json.support;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -13,9 +15,15 @@ import java.util.Map;
 import java.util.Set;
 
 import io.github.oppsgo.json.annotation.JsonAlias;
+import io.github.oppsgo.json.annotation.JsonDeserialize;
+import io.github.oppsgo.json.annotation.JsonFormat;
 import io.github.oppsgo.json.annotation.JsonIgnore;
 import io.github.oppsgo.json.annotation.JsonIgnoreProperties;
 import io.github.oppsgo.json.annotation.JsonProperty;
+import io.github.oppsgo.json.annotation.JsonSerialize;
+import io.github.oppsgo.json.convert.FormatSpec;
+import io.github.oppsgo.json.convert.JsonFieldDeserializer;
+import io.github.oppsgo.json.convert.JsonFieldSerializer;
 
 /**
  * Immutable, per-{@link Class} view of JsonKit annotation binding data.
@@ -163,6 +171,39 @@ public final class BindingMeta {
         return fieldByJavaName.get(javaName);
     }
 
+    /**
+     * Resolves a field by Java name or canonical JSON name.
+     */
+    public Field findFieldByJavaOrJsonName(String name) {
+        if (name == null) {
+            return null;
+        }
+        Field byJava = fieldByJavaName.get(name);
+        if (byJava != null) {
+            return byJava;
+        }
+        for (Map.Entry<Field, FieldBinding> entry : bindingByField.entrySet()) {
+            if (name.equals(entry.getValue().jsonName)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Binding snapshot for {@code field}, or {@code null} if unknown.
+     */
+    public FieldBinding bindingOf(Field field) {
+        return bindingByField.get(field);
+    }
+
+    /**
+     * All per-field binding snapshots for this type.
+     */
+    public Collection<FieldBinding> getFieldBindings() {
+        return bindingByField.values();
+    }
+
     public Set<String> getIgnoredPropertyNames() {
         return ignoredPropertyNames;
     }
@@ -246,16 +287,48 @@ public final class BindingMeta {
         public final String[] aliases;
         public final boolean ignoreSerialize;
         public final boolean ignoreDeserialize;
+        /**
+         * Declared generic type of the field (for converters).
+         */
+        public final Type fieldType;
+        /**
+         * Custom serializer class, or {@code null}.
+         */
+        public final Class<? extends JsonFieldSerializer<?>> serializeUsing;
+        /**
+         * Custom deserializer class, or {@code null}.
+         */
+        public final Class<? extends JsonFieldDeserializer<?>> deserializeUsing;
+        /**
+         * {@link JsonFormat} snapshot, or {@code null}.
+         */
+        public final FormatSpec format;
 
         private FieldBinding(
                 String jsonName,
                 String[] aliases,
                 boolean ignoreSerialize,
-                boolean ignoreDeserialize) {
+                boolean ignoreDeserialize,
+                Type fieldType,
+                Class<? extends JsonFieldSerializer<?>> serializeUsing,
+                Class<? extends JsonFieldDeserializer<?>> deserializeUsing,
+                FormatSpec format) {
             this.jsonName = jsonName;
             this.aliases = aliases;
             this.ignoreSerialize = ignoreSerialize;
             this.ignoreDeserialize = ignoreDeserialize;
+            this.fieldType = fieldType;
+            this.serializeUsing = serializeUsing;
+            this.deserializeUsing = deserializeUsing;
+            this.format = format;
+        }
+
+        public boolean hasSerializeConverter() {
+            return serializeUsing != null || format != null;
+        }
+
+        public boolean hasDeserializeConverter() {
+            return deserializeUsing != null || format != null;
         }
 
         static FieldBinding from(Field field) {
@@ -281,7 +354,25 @@ public final class BindingMeta {
             boolean ignoreSerialize = ignoredByClass || (ignore != null && ignore.serialize());
             boolean ignoreDeserialize = ignoredByClass || (ignore != null && ignore.deserialize());
 
-            return new FieldBinding(jsonName, aliases, ignoreSerialize, ignoreDeserialize);
+            JsonSerialize serialize = field.getAnnotation(JsonSerialize.class);
+            Class<? extends JsonFieldSerializer<?>> serializeUsing =
+                    serialize != null ? serialize.using() : null;
+
+            JsonDeserialize deserialize = field.getAnnotation(JsonDeserialize.class);
+            Class<? extends JsonFieldDeserializer<?>> deserializeUsing =
+                    deserialize != null ? deserialize.using() : null;
+
+            FormatSpec format = FormatSpec.from(field.getAnnotation(JsonFormat.class));
+
+            return new FieldBinding(
+                    jsonName,
+                    aliases,
+                    ignoreSerialize,
+                    ignoreDeserialize,
+                    field.getGenericType(),
+                    serializeUsing,
+                    deserializeUsing,
+                    format);
         }
     }
 }

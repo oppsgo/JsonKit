@@ -19,8 +19,9 @@ import java.util.Map;
 import java.util.Set;
 
 import io.github.oppsgo.json.JsonOptions;
+import io.github.oppsgo.json.convert.FieldConverters;
+import io.github.oppsgo.json.convert.StrategyInstanceCache;
 import io.github.oppsgo.json.support.BindingMeta;
-import io.github.oppsgo.json.support.JsonAnnotationSupport;
 
 /**
  * Moshi {@link JsonAdapter.Factory} that binds JsonKit annotations onto Java fields
@@ -28,13 +29,12 @@ import io.github.oppsgo.json.support.JsonAnnotationSupport;
  */
 final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
 
-    /**
-     * Adapter-level options; new JsonOptions fields are read from here instead of being split out.
-     */
     private final JsonOptions options;
+    private final StrategyInstanceCache strategies;
 
-    JsonKitMoshiAdapterFactory(JsonOptions options) {
+    JsonKitMoshiAdapterFactory(JsonOptions options, StrategyInstanceCache strategies) {
         this.options = options;
+        this.strategies = strategies;
     }
 
     @Override
@@ -55,26 +55,33 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
 
         List<BoundField> boundFields = new ArrayList<BoundField>();
         Map<String, BoundField> nameToField = new LinkedHashMap<String, BoundField>();
+        JsonAdapter<Object> treeAdapter = moshi.adapter(Object.class);
 
         for (int i = 0; i < fields.size(); i++) {
             Field field = fields.get(i);
             field.setAccessible(true);
-            boolean ignoreSerialize = JsonAnnotationSupport.shouldIgnoreSerialize(field);
-            boolean ignoreDeserialize = JsonAnnotationSupport.shouldIgnoreDeserialize(field);
-            if (ignoreSerialize && ignoreDeserialize) {
+            BindingMeta.FieldBinding binding = meta.bindingOf(field);
+            if (binding == null) {
+                continue;
+            }
+            if (binding.ignoreSerialize && binding.ignoreDeserialize) {
                 continue;
             }
 
-            String jsonName = JsonAnnotationSupport.jsonName(field);
-            JsonAdapter<Object> adapter = moshi.adapter(field.getGenericType());
-            BoundField bound = new BoundField(field, jsonName, adapter, ignoreSerialize, ignoreDeserialize);
+            JsonAdapter<Object> typeAdapter = null;
+            if (!binding.hasSerializeConverter() || !binding.hasDeserializeConverter()) {
+                typeAdapter = moshi.adapter(field.getGenericType());
+            }
+            JsonAdapter<Object> adapter = wrapConverter(
+                    typeAdapter, treeAdapter, binding, field.getGenericType());
+            BoundField bound = new BoundField(
+                    field, binding.jsonName, adapter, binding.ignoreSerialize, binding.ignoreDeserialize);
             boundFields.add(bound);
 
-            if (!ignoreDeserialize) {
-                putName(nameToField, jsonName, bound);
-                String[] aliases = JsonAnnotationSupport.aliases(field);
-                for (int a = 0; a < aliases.length; a++) {
-                    String alias = aliases[a];
+            if (!binding.ignoreDeserialize) {
+                putName(nameToField, binding.jsonName, bound);
+                for (int a = 0; a < binding.aliases.length; a++) {
+                    String alias = binding.aliases[a];
                     if (alias != null && !alias.isEmpty()) {
                         putName(nameToField, alias, bound);
                     }
@@ -86,6 +93,49 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
         Constructor<?> constructor = resolveConstructor(raw);
         return new FieldJsonAdapter(raw, constructor, boundFields, nameToField, keysToDrop, options)
                 .nullSafe();
+    }
+
+    private JsonAdapter<Object> wrapConverter(
+            final JsonAdapter<Object> delegate,
+            final JsonAdapter<Object> treeAdapter,
+            final BindingMeta.FieldBinding binding,
+            final Type fieldType) {
+        if (!binding.hasSerializeConverter() && !binding.hasDeserializeConverter()) {
+            return delegate;
+        }
+        return new JsonAdapter<Object>() {
+            @Override
+            public Object fromJson(JsonReader reader) throws IOException {
+                if (reader.peek() == JsonReader.Token.NULL) {
+                    return reader.nextNull();
+                }
+                if (binding.hasDeserializeConverter()) {
+                    Object tree = treeAdapter.fromJson(reader);
+                    return FieldConverters.deserialize(binding, tree, fieldType, strategies);
+                }
+                if (delegate == null) {
+                    throw new IOException("Missing Moshi adapter for " + fieldType);
+                }
+                return delegate.fromJson(reader);
+            }
+
+            @Override
+            public void toJson(JsonWriter writer, Object value) throws IOException {
+                if (value == null) {
+                    writer.nullValue();
+                    return;
+                }
+                if (binding.hasSerializeConverter()) {
+                    Object tree = FieldConverters.serialize(binding, value, strategies);
+                    treeAdapter.toJson(writer, tree);
+                    return;
+                }
+                if (delegate == null) {
+                    throw new IOException("Missing Moshi adapter for " + fieldType);
+                }
+                delegate.toJson(writer, value);
+            }
+        };
     }
 
     private static void putName(Map<String, BoundField> map, String name, BoundField bound) {
@@ -131,30 +181,11 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
         }
     }
 
-    /**
-     * One reflected field plus its JsonKit binding and Moshi value adapter.
-     * Built once when the enclosing {@link FieldJsonAdapter} is created; Moshi then caches that adapter.
-     */
     private static final class BoundField {
-        /**
-         * Accessible Java field on the model (or superclass).
-         */
         final Field field;
-        /**
-         * Canonical JSON name ({@code @JsonProperty} or the Java field name).
-         */
         final String jsonName;
-        /**
-         * Moshi adapter for this field's declared type.
-         */
         final JsonAdapter<Object> adapter;
-        /**
-         * When true, omit this field on serialize ({@code @JsonIgnore} / ignore-properties).
-         */
         final boolean ignoreSerialize;
-        /**
-         * When true, do not bind incoming JSON into this field.
-         */
         final boolean ignoreDeserialize;
 
         BoundField(
@@ -171,37 +202,12 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
         }
     }
 
-    /**
-     * Reflective object {@link JsonAdapter} for a concrete model type.
-     * Writes/reads JSON objects using {@link BoundField}s; honors aliases via {@link #nameToField}
-     * and drops keys listed in {@link #keysToDrop}.
-     */
     private static final class FieldJsonAdapter extends JsonAdapter<Object> {
-        /**
-         * Concrete model class being adapted.
-         */
         private final Class<?> raw;
-        /**
-         * No-arg constructor used on deserialize.
-         */
         private final Constructor<?> constructor;
-        /**
-         * Fields in declaration order for serialize.
-         */
         private final List<BoundField> boundFields;
-        /**
-         * JSON property name or {@code @JsonAlias} → field binding (first registration wins).
-         * Used only on deserialize.
-         */
         private final Map<String, BoundField> nameToField;
-        /**
-         * Keys to skip on deserialize (ignore-on-deserialize names/aliases and
-         * {@code @JsonIgnoreProperties}).
-         */
         private final Set<String> keysToDrop;
-        /**
-         * Snapshot of JsonKit options (e.g. serializeNulls) for this Moshi instance.
-         */
         private final JsonOptions options;
 
         FieldJsonAdapter(

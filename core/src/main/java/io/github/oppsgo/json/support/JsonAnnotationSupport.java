@@ -100,4 +100,11 @@ public final class JsonAnnotationSupport {
         }
         return BindingMeta.scan(type).getKeysToDrop();
     }
+
+    /**
+     * Per-field binding snapshot (name, ignore, aliases, converters, format).
+     */
+    public static BindingMeta.FieldBinding fieldBinding(Field field) {
+        return BindingMeta.FieldBinding.from(field);
+    }
 }

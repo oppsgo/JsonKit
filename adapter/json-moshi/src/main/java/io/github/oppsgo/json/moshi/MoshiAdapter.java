@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.github.oppsgo.json.JsonOptions;
+import io.github.oppsgo.json.convert.StrategyInstanceCache;
 import io.github.oppsgo.json.reflect.JsonTypeReference;
 import okio.Buffer;
 
@@ -46,7 +47,7 @@ public class MoshiAdapter implements io.github.oppsgo.json.adapter.JsonAdapter {
         JsonOptions resolved = options != null ? new JsonOptions(options) : JsonOptions.defaults();
         this.options = resolved;
         this.moshi = new Moshi.Builder()
-                .add(new JsonKitMoshiAdapterFactory(resolved))
+                .add(new JsonKitMoshiAdapterFactory(resolved, new StrategyInstanceCache()))
                 .build();
     }
 
