@@ -3,11 +3,16 @@ plugins {
 }
 
 group = "com.github.oppsgo"
-version = "1.0.3"
+version = "1.0.4"
 
 subprojects {
     group = rootProject.group
     version = rootProject.version
+
+    // Benchmark is a local JMH harness — do not publish or Animal-Sniffer it.
+    if (name == "benchmark") {
+        return@subprojects
+    }
 
     pluginManager.withPlugin("java") {
         pluginManager.apply(libs.plugins.animalsniffer.get().pluginId)

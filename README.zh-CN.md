@@ -45,17 +45,17 @@ dependencyResolutionManagement {
 }
 ```
 
-2. 添加依赖（将版本换成标签，例如 `1.0.3`）：
+2. 添加依赖（将版本换成标签，例如 `1.0.4`）：
 
 ```kotlin
 // 全部模块（聚合）
-implementation("com.github.oppsgo:json-kit:1.0.3")
+implementation("com.github.oppsgo:json-kit:1.0.4")
 
 // 或按需选用单个模块：
-implementation("com.github.oppsgo.json-kit:core:1.0.3")
-implementation("com.github.oppsgo.json-kit:json-gson:1.0.3")       // Gson（含 core）
-implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.3")  // Fastjson2（推荐）
-implementation("com.github.oppsgo.json-kit:json-fastjson:1.0.3")   // Fastjson 1.x
+implementation("com.github.oppsgo.json-kit:core:1.0.4")
+implementation("com.github.oppsgo.json-kit:json-gson:1.0.4")       // Gson（含 core）
+implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.4")  // Fastjson2（推荐）
+implementation("com.github.oppsgo.json-kit:json-fastjson:1.0.4")   // Fastjson 1.x
 ```
 
 构建状态 / 产物：[jitpack.io/#oppsgo/json-kit](https://jitpack.io/#oppsgo/json-kit)

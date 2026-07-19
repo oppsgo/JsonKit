@@ -16,6 +16,8 @@ import io.github.oppsgo.json.adapter.JsonAdapter;
  * JsonKit.setDefault(FastjsonAdapterFactory.of());
  * JsonKit.setDefault(FastjsonAdapterFactory.of(options));
  * }</pre>
+ * Prefer registering this factory once; the shared {@link FastjsonAdapter} owns a binding cache
+ * and should not be replaced with per-request {@code new FastjsonAdapter()}.
  */
 public class FastjsonAdapterFactory implements JsonAdapter.Factory {
 

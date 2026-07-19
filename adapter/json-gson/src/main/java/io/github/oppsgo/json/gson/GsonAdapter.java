@@ -26,6 +26,7 @@ import java.util.Set;
 import io.github.oppsgo.json.JsonOptions;
 import io.github.oppsgo.json.adapter.JsonAdapter;
 import io.github.oppsgo.json.reflect.JsonTypeReference;
+import io.github.oppsgo.json.support.BindingMeta;
 import io.github.oppsgo.json.support.JsonAnnotationSupport;
 
 /**
@@ -71,12 +72,7 @@ public class GsonAdapter implements JsonAdapter {
         return new JsonOptions(options);
     }
 
-    private static final FieldNamingStrategy JSON_NAMING = new FieldNamingStrategy() {
-        @Override
-        public String translateName(Field field) {
-            return JsonAnnotationSupport.jsonName(field);
-        }
-    };
+    private static final FieldNamingStrategy JSON_NAMING = JsonAnnotationSupport::jsonName;
 
     @Override
     public String toJson(Object object) {
@@ -167,14 +163,15 @@ public class GsonAdapter implements JsonAdapter {
                     || raw.getName().startsWith("javax.")) {
                 return null;
             }
-            Map<String, String> aliasToCanonical =
-                    JsonAnnotationSupport.deserializeAliasToCanonicalName(raw);
-            Set<String> drop = JsonAnnotationSupport.deserializeKeysToDrop(raw);
+            BindingMeta meta = BindingMeta.scan(raw);
+            Map<String, String> aliasToCanonical = meta.getAliasToCanonicalName();
+            Set<String> drop = meta.getKeysToDrop();
             if (aliasToCanonical.isEmpty() && drop.isEmpty()) {
                 return null;
             }
             final TypeAdapter<T> delegate = gson.getDelegateAdapter(this, type);
             final TypeAdapter<JsonElement> elementAdapter = gson.getAdapter(JsonElement.class);
+            // Capture remap/drop into the TypeAdapter; BindingMeta itself is not retained.
             final Map<String, String> remap = aliasToCanonical;
             final Set<String> dropKeys = drop;
             return new TypeAdapter<T>() {

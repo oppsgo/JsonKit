@@ -45,17 +45,17 @@ dependencyResolutionManagement {
 }
 ```
 
-2. Add a dependency (replace version with a release tag such as `1.0.3`):
+2. Add a dependency (replace version with a release tag such as `1.0.4`):
 
 ```kotlin
 // All modules (aggregate)
-implementation("com.github.oppsgo:json-kit:1.0.3")
+implementation("com.github.oppsgo:json-kit:1.0.4")
 
 // Or pick one module:
-implementation("com.github.oppsgo.json-kit:core:1.0.3")
-implementation("com.github.oppsgo.json-kit:json-gson:1.0.3")       // Gson (+ core)
-implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.3")  // Fastjson2 (recommended)
-implementation("com.github.oppsgo.json-kit:json-fastjson:1.0.3")   // Fastjson 1.x
+implementation("com.github.oppsgo.json-kit:core:1.0.4")
+implementation("com.github.oppsgo.json-kit:json-gson:1.0.4")       // Gson (+ core)
+implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.4")  // Fastjson2 (recommended)
+implementation("com.github.oppsgo.json-kit:json-fastjson:1.0.4")   // Fastjson 1.x
 ```
 
 Build status / artifacts: [jitpack.io/#oppsgo/json-kit](https://jitpack.io/#oppsgo/json-kit)

@@ -6,6 +6,8 @@ fastjson2 = "2.0.53"
 junit = "5.10.2"
 animalsniffer = "2.0.1"
 gummyBears = "0.14.0"
+jmh = "1.37"
+jmhGradlePlugin = "0.7.3"
 
 [libraries]
 jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrainsAnnotations" }
@@ -21,5 +23,9 @@ junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform
 # Animal Sniffer signatures for Android API 19 (+ D8 desugared methods)
 gummy-bears-api19 = { group = "com.toasttab.android", name = "gummy-bears-api-19", version.ref = "gummyBears" }
 
+jmh-core = { group = "org.openjdk.jmh", name = "jmh-core", version.ref = "jmh" }
+jmh-generator-annprocess = { group = "org.openjdk.jmh", name = "jmh-generator-annprocess", version.ref = "jmh" }
+
 [plugins]
 animalsniffer = { id = "ru.vyarus.animalsniffer", version.ref = "animalsniffer" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmhGradlePlugin" }

@@ -18,14 +18,14 @@ import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import io.github.oppsgo.json.JsonOptions;
 import io.github.oppsgo.json.adapter.JsonAdapter;
 import io.github.oppsgo.json.reflect.JsonTypeReference;
-import io.github.oppsgo.json.support.JsonAnnotationSupport;
+import io.github.oppsgo.json.support.BindingCache;
+import io.github.oppsgo.json.support.BindingMeta;
 
 /**
  * Fastjson 1.x (compatibility) backed {@link JsonAdapter}. Prefer Fastjson2 for new apps.
@@ -33,9 +33,13 @@ import io.github.oppsgo.json.support.JsonAnnotationSupport;
  * Honors JsonKit annotations ({@code @JsonProperty}, {@code @JsonIgnore},
  * {@code @JsonAlias}, {@code @JsonIgnoreProperties}). Options are snapshotted at
  * construction; {@code null} options mean {@link JsonOptions#defaults()}.
+ * <p>
+ * Prefer a long-lived instance (e.g. {@link FastjsonAdapterFactory#of()}); each adapter
+ * owns a {@link BindingCache}. Avoid per-request {@code new FastjsonAdapter()}.
  */
 public class FastjsonAdapter implements JsonAdapter {
 
+    private final BindingCache bindings;
     private final SerializeFilter[] filters;
     private final SerializerFeature[] features;
     private final JsonOptions options;
@@ -52,9 +56,21 @@ public class FastjsonAdapter implements JsonAdapter {
      * {@code options == null} is treated as {@link JsonOptions#defaults()}.
      */
     public FastjsonAdapter(JsonOptions options) {
+        this(options, new BindingCache());
+    }
+
+    /**
+     * Creates an adapter with the given options and binding cache.
+     * Prefer {@link #FastjsonAdapter(JsonOptions)} in applications.
+     * Pass {@code new BindingCache(false)} only for benchmarks that force a rescan each time.
+     * {@code options == null} is treated as {@link JsonOptions#defaults()}.
+     * {@code bindings == null} is treated as {@code new BindingCache()}.
+     */
+    public FastjsonAdapter(JsonOptions options, BindingCache bindings) {
         JsonOptions resolved = options != null ? new JsonOptions(options) : JsonOptions.defaults();
         this.options = resolved;
-        this.filters = new SerializeFilter[]{NAME_FILTER, PROPERTY_FILTER};
+        this.bindings = bindings != null ? bindings : new BindingCache();
+        this.filters = new SerializeFilter[]{createNameFilter(), createPropertyFilter()};
         if (resolved.isSerializeNulls()) {
             this.features = new SerializerFeature[]{SerializerFeature.WriteMapNullValue};
         } else {
@@ -68,31 +84,36 @@ public class FastjsonAdapter implements JsonAdapter {
         return new JsonOptions(options);
     }
 
-    private static final NameFilter NAME_FILTER = new NameFilter() {
-        @Override
-        public String process(Object object, String name, Object value) {
-            if (object == null || name == null) {
-                return name;
+    private NameFilter createNameFilter() {
+        return new NameFilter() {
+            @Override
+            public String process(Object object, String name, Object value) {
+                if (object == null || name == null) {
+                    return name;
+                }
+                BindingMeta meta = bindings.get(object.getClass());
+                Field field = meta.findField(name);
+                return field != null ? meta.jsonName(field) : name;
             }
-            Field field = findField(object.getClass(), name);
-            return field != null ? JsonAnnotationSupport.jsonName(field) : name;
-        }
-    };
+        };
+    }
 
-    private static final PropertyFilter PROPERTY_FILTER = new PropertyFilter() {
-        @Override
-        public boolean apply(Object object, String name, Object value) {
-            if (object == null || name == null) {
-                return true;
+    private PropertyFilter createPropertyFilter() {
+        return new PropertyFilter() {
+            @Override
+            public boolean apply(Object object, String name, Object value) {
+                if (object == null || name == null) {
+                    return true;
+                }
+                BindingMeta meta = bindings.get(object.getClass());
+                Field field = meta.findField(name);
+                if (field == null) {
+                    return !meta.getIgnoredPropertyNames().contains(name);
+                }
+                return !meta.shouldIgnoreSerialize(field);
             }
-            Field field = findField(object.getClass(), name);
-            if (field == null) {
-                Set<String> ignored = JsonAnnotationSupport.ignoredPropertyNames(object.getClass());
-                return !ignored.contains(name);
-            }
-            return !JsonAnnotationSupport.shouldIgnoreSerialize(field);
-        }
-    };
+        };
+    }
 
     @Override
     public String toJson(Object object) {
@@ -150,7 +171,7 @@ public class FastjsonAdapter implements JsonAdapter {
         return sb.toString();
     }
 
-    private static Object remapNode(Object node, Type type) {
+    private Object remapNode(Object node, Type type) {
         if (node == null || type == null) {
             return node;
         }
@@ -186,9 +207,10 @@ public class FastjsonAdapter implements JsonAdapter {
         return node;
     }
 
-    private static JSONObject remapObject(JSONObject source, Class<?> type) {
-        Map<String, String> toField = JsonAnnotationSupport.deserializeKeyRemapToFieldName(type);
-        Set<String> drop = JsonAnnotationSupport.deserializeKeysToDrop(type);
+    private JSONObject remapObject(JSONObject source, Class<?> type) {
+        BindingMeta meta = bindings.get(type);
+        Map<String, String> toField = meta.getKeyRemapToFieldName();
+        Set<String> drop = meta.getKeysToDrop();
         JSONObject out = new JSONObject(true);
         for (Map.Entry<String, Object> entry : source.entrySet()) {
             String key = entry.getKey();
@@ -200,7 +222,7 @@ public class FastjsonAdapter implements JsonAdapter {
             if (drop.contains(fieldName)) {
                 continue;
             }
-            Field field = findField(type, fieldName);
+            Field field = meta.findField(fieldName);
             Object value = entry.getValue();
             if (field != null) {
                 value = remapNode(value, field.getGenericType());
@@ -218,17 +240,6 @@ public class FastjsonAdapter implements JsonAdapter {
             Type raw = ((ParameterizedType) type).getRawType();
             if (raw instanceof Class) {
                 return (Class<?>) raw;
-            }
-        }
-        return null;
-    }
-
-    private static Field findField(Class<?> type, String name) {
-        List<Field> fields = JsonAnnotationSupport.jsonFields(type);
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            if (field.getName().equals(name)) {
-                return field;
             }
         }
         return null;
