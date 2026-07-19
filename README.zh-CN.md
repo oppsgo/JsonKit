@@ -44,17 +44,17 @@ dependencyResolutionManagement {
 }
 ```
 
-2. 添加依赖（将版本换成标签，例如 `1.0.2`）：
+2. 添加依赖（将版本换成标签，例如 `1.0.3`）：
 
 ```kotlin
 // 全部模块（聚合）— 注意：group 是 com.gitee.oppsgo（用点连接），必须带版本号
-implementation("com.gitee.oppsgo:json-kit:1.0.2")
+implementation("com.gitee.oppsgo:json-kit:1.0.3")
 
 // 或按需选用单个模块：
-implementation("com.gitee.oppsgo.json-kit:core:1.0.2")
-implementation("com.gitee.oppsgo.json-kit:json-gson:1.0.2")       // Gson（含 core）
-implementation("com.gitee.oppsgo.json-kit:json-fastjson2:1.0.2")  // Fastjson2（推荐）
-implementation("com.gitee.oppsgo.json-kit:json-fastjson:1.0.2")   // Fastjson 1.x
+implementation("com.gitee.oppsgo.json-kit:core:1.0.3")
+implementation("com.gitee.oppsgo.json-kit:json-gson:1.0.3")       // Gson（含 core）
+implementation("com.gitee.oppsgo.json-kit:json-fastjson2:1.0.3")  // Fastjson2（推荐）
+implementation("com.gitee.oppsgo.json-kit:json-fastjson:1.0.3")   // Fastjson 1.x
 ```
 
 构建状态 / 产物：在 [jitpack.io](https://jitpack.io/) 搜索框粘贴 `https://gitee.com/oppsgo/json-kit` 后 Look up

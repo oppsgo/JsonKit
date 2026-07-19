@@ -44,17 +44,17 @@ dependencyResolutionManagement {
 }
 ```
 
-2. Add a dependency (replace `Tag` with a release tag such as `1.0.2`):
+2. Add a dependency (replace `Tag` with a release tag such as `1.0.3`):
 
 ```kotlin
 // All modules (aggregate) — note: group is com.gitee.oppsgo (dot), version required
-implementation("com.gitee.oppsgo:json-kit:1.0.2")
+implementation("com.gitee.oppsgo:json-kit:1.0.3")
 
 // Or pick one module:
-implementation("com.gitee.oppsgo.json-kit:core:1.0.2")
-implementation("com.gitee.oppsgo.json-kit:json-gson:1.0.2")       // Gson (+ core)
-implementation("com.gitee.oppsgo.json-kit:json-fastjson2:1.0.2")  // Fastjson2 (recommended)
-implementation("com.gitee.oppsgo.json-kit:json-fastjson:1.0.2")   // Fastjson 1.x
+implementation("com.gitee.oppsgo.json-kit:core:1.0.3")
+implementation("com.gitee.oppsgo.json-kit:json-gson:1.0.3")       // Gson (+ core)
+implementation("com.gitee.oppsgo.json-kit:json-fastjson2:1.0.3")  // Fastjson2 (recommended)
+implementation("com.gitee.oppsgo.json-kit:json-fastjson:1.0.3")   // Fastjson 1.x
 ```
 
 Build status / artifacts: look up `https://gitee.com/oppsgo/json-kit` on [jitpack.io](https://jitpack.io/)

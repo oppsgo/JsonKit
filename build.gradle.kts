@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.gitee.oppsgo"
-version = "1.0.2"
+version = "1.0.3"
 
 subprojects {
     group = rootProject.group
@@ -23,6 +23,12 @@ subprojects {
                     from(components["java"])
                 }
             }
+        }
+
+        // JitPack rewrites *.module and points sourcesElements at the main jar
+        // (wrong filename). Disable GMM so IDEs resolve -sources.jar via Maven POM.
+        tasks.withType<GenerateModuleMetadata>().configureEach {
+            enabled = false
         }
 
         tasks.withType<JavaCompile>().configureEach {
