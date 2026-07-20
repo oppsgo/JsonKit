@@ -11,14 +11,12 @@ public final class StrategyInstanceCache {
     private final ConcurrentHashMap<Class<?>, Object> instances =
             new ConcurrentHashMap<Class<?>, Object>();
 
-    @SuppressWarnings("unchecked")
     public <T extends JsonFieldSerializer<?>> T serializer(Class<T> type) {
-        return (T) getOrCreate(type);
+        return type.cast(getOrCreate(type));
     }
 
-    @SuppressWarnings("unchecked")
     public <T extends JsonFieldDeserializer<?>> T deserializer(Class<T> type) {
-        return (T) getOrCreate(type);
+        return type.cast(getOrCreate(type));
     }
 
     private Object getOrCreate(Class<?> type) {

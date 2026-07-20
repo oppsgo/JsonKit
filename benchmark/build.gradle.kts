@@ -14,6 +14,7 @@ dependencies {
     jmh(projects.adapter.jsonFastjson2)
     jmh(projects.adapter.jsonFastjson)
     jmh(projects.adapter.jsonGson)
+    jmh(libs.fastjson2) // bare JSON.* vs JsonKit in Fastjson2NativeVsJsonKitBenchmark
     jmh(libs.jmh.core)
     jmhAnnotationProcessor(libs.jmh.generator.annprocess)
 }

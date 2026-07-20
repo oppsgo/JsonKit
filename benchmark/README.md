@@ -12,6 +12,7 @@ Measures binding-cache impact across core + all adapters. Uses the JDK that runs
 ./gradlew :benchmark:jmh -PjmhInclude=GsonRoundTrip
 ./gradlew :benchmark:jmh -PjmhInclude=FastjsonRoundTrip
 ./gradlew :benchmark:jmh -PjmhInclude=Fastjson2RoundTrip
+./gradlew :benchmark:jmh -PjmhInclude=Fastjson2NativeVsJsonKit
 ./gradlew :benchmark:jmh -PjmhInclude=BindingMetaScan
 ```
 
@@ -19,11 +20,14 @@ Results: `benchmark/build/results/jmh/results.txt`
 
 ## What to look at
 
-| Benchmark                          | Meaning                                                                    |
-|------------------------------------|----------------------------------------------------------------------------|
-| `BindingMetaScanBenchmark.resolve` | Pure scan vs cache hit (engine-agnostic)                                   |
-| `Fastjson2RoundTripBenchmark.*`    | Fastjson2 + `BindingCache(true/false)`                                     |
-| `FastjsonRoundTripBenchmark.*`     | Fastjson 1.x + cache toggle                                                |
-| `GsonRoundTripBenchmark.*`         | Gson steady-state only (no BindingCache; relies on Gson TypeAdapter cache) |
+| Benchmark                             | Meaning                                                                                    |
+|---------------------------------------|--------------------------------------------------------------------------------------------|
+| `BindingMetaScanBenchmark.resolve`    | Pure scan vs cache hit (engine-agnostic)                                                   |
+| `Fastjson2RoundTripBenchmark.*`       | Fastjson2 + `BindingCache(true/false)`                                                     |
+| `Fastjson2NativeVsJsonKitBenchmark.*` | Bare Fastjson2 (`NATIVE`) vs JsonKit adapter (`JSONKIT`); `PLAIN` / `ANNOTATED`            |
+| `FastjsonRoundTripBenchmark.*`        | Fastjson 1.x + cache toggle                                                                |
+| `GsonRoundTripBenchmark.*`            | Gson steady-state only (no BindingCache; relies on Gson TypeAdapter cache)                 |
 
 `UNCACHED` = `new BindingCache(false)`. `CACHED` = production behavior.
+
+Middleware overhead ≈ `JSONKIT` ÷ `NATIVE` on the same `modelKind` (e.g. `deserialize` + `PLAIN`).

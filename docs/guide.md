@@ -88,7 +88,7 @@ Package root: `io.github.oppsgo.json` (annotations `.annotation`, converters `.c
 
 | Engine | Module / factory | When |
 |--------|------------------|------|
-| **Fastjson2** | `json-fastjson2` / `Fastjson2AdapterFactory` | Default Fastjson line for new work |
+| **Fastjson2** | `json-fastjson2` / `Fastjson2AdapterFactory` | Default Fastjson line for new work. Annotated deserialize binds via BindingMeta-driven `ObjectReader` (single pass); plain DTOs use native `parseObject`. |
 | **Gson** | `json-gson` / `GsonAdapterFactory` | Existing Gson stacks |
 | **Moshi** | `json-moshi` / `MoshiAdapterFactory` | Android / OkHttp; reflective JsonKit bridge (no Kotlin codegen) |
 | **Fastjson 1.x** | `json-fastjson` / `FastjsonAdapterFactory` | Compatibility only |

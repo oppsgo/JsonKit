@@ -9,6 +9,7 @@ import com.alibaba.fastjson2.filter.Filter;
 import com.alibaba.fastjson2.filter.NameFilter;
 import com.alibaba.fastjson2.filter.PropertyFilter;
 import com.alibaba.fastjson2.filter.ValueFilter;
+import com.alibaba.fastjson2.util.TypeUtils;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -36,18 +37,23 @@ import io.github.oppsgo.json.support.BindingMeta;
  * {@code @JsonAlias}, {@code @JsonIgnoreProperties}). Options are snapshotted at
  * construction; {@code null} options mean {@link JsonOptions#defaults()}.
  * <p>
- * Prefer a long-lived instance (e.g. {@link Fastjson2AdapterFactory#of()}); each adapter
- * owns a {@link BindingCache}. Avoid per-request {@code new Fastjson2Adapter()}.
+ * Deserialize uses BindingMeta-driven Fastjson2 {@code FieldReader}/{@code ObjectReader}
+ * (engine-native) when JsonKit rules apply, or a direct {@code parseObject} when they
+ * do not. Prefer a long-lived instance (e.g. {@link Fastjson2AdapterFactory#of()});
+ * each adapter owns a {@link BindingCache}. Avoid per-request {@code new Fastjson2Adapter()}.
  */
 public class Fastjson2Adapter implements JsonAdapter {
 
     private final BindingCache bindings;
     private final StrategyInstanceCache strategies;
+    private final Fastjson2BindingSupport bindingSupport;
     private final Filter[] filters;
     private final JSONWriter.Feature[] writeFeatures;
     private final JsonOptions options;
 
-    /** Creates an adapter with {@link JsonOptions#defaults()}. */
+    /**
+     * Creates an adapter with {@link JsonOptions#defaults()}.
+     */
     public Fastjson2Adapter() {
         this(JsonOptions.defaults());
     }
@@ -72,6 +78,7 @@ public class Fastjson2Adapter implements JsonAdapter {
         this.options = resolved;
         this.bindings = bindings != null ? bindings : new BindingCache();
         this.strategies = new StrategyInstanceCache();
+        this.bindingSupport = new Fastjson2BindingSupport(this.bindings, this.strategies);
         this.filters = new Filter[]{createNameFilter(), createPropertyFilter(), createValueFilter()};
         if (resolved.isSerializeNulls()) {
             this.writeFeatures = new JSONWriter.Feature[]{JSONWriter.Feature.WriteMapNullValue};
@@ -156,9 +163,20 @@ public class Fastjson2Adapter implements JsonAdapter {
 
     @Override
     public <T> T fromJson(String json, @NotNull Type type) {
-        Object tree = JSON.parse(json);
-        Object remapped = remapNode(tree, type);
-        return JSON.parseObject(JSON.toJSONString(remapped), type, JSONReader.Feature.SupportSmartMatch);
+        if (json == null) {
+            return null;
+        }
+        if (!bindingSupport.needsJsonKitDeserializeBinding(type)) {
+            return JSON.parseObject(json, type);
+        }
+        JSONReader.Context context;
+        try {
+            context = bindingSupport.bindingReadContext(type);
+        } catch (RuntimeException setupFailed) {
+            // ObjectReader cannot be built for a type in the graph — tree remap + cast.
+            return fromJsonTreeFallback(json, type);
+        }
+        return JSON.parseObject(json, type, context);
     }
 
     @Override
@@ -182,6 +200,15 @@ public class Fastjson2Adapter implements JsonAdapter {
         return fromJson(reader, reference.getType());
     }
 
+    /**
+     * Narrow safety net: one structural parse, tree remap, in-memory cast — never stringify.
+     */
+    private <T> T fromJsonTreeFallback(String json, Type type) {
+        Object tree = JSON.parse(json);
+        Object remapped = remapNode(tree, type);
+        return TypeUtils.cast(remapped, type);
+    }
+
     private static String readFully(Reader reader) throws IOException {
         StringBuilder sb = new StringBuilder();
         char[] buf = new char[2048];
@@ -198,7 +225,7 @@ public class Fastjson2Adapter implements JsonAdapter {
         }
         if (node instanceof JSONObject) {
             JSONObject obj = (JSONObject) node;
-            Class<?> raw = rawClass(type);
+            Class<?> raw = Fastjson2BindingSupport.rawClass(type);
             if (raw == null || Map.class.isAssignableFrom(raw)) {
                 if (type instanceof ParameterizedType) {
                     Type[] args = ((ParameterizedType) type).getActualTypeArguments();
@@ -256,18 +283,5 @@ public class Fastjson2Adapter implements JsonAdapter {
             out.put(fieldName, value);
         }
         return out;
-    }
-
-    private static Class<?> rawClass(Type type) {
-        if (type instanceof Class) {
-            return (Class<?>) type;
-        }
-        if (type instanceof ParameterizedType) {
-            Type raw = ((ParameterizedType) type).getRawType();
-            if (raw instanceof Class) {
-                return (Class<?>) raw;
-            }
-        }
-        return null;
     }
 }

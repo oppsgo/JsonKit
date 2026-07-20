@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Fastjson2 deserialize: annotated / remap-needed types bind through BindingMeta-driven `ObjectReader` (single codec pass); plain DTOs use direct `parseObject`. Removed remapped-tree `toJSONString` + second text parse (no public API break).
+
 ## [1.0.4] - 2026-07-19
 
 ### Added

@@ -105,7 +105,7 @@ implementation(project(":adapter:json-fastjson2"))
 
 | 引擎 | 模块 / Factory | 适合 |
 |------|----------------|------|
-| **Fastjson2** | `json-fastjson2` / `Fastjson2AdapterFactory` | 新项目默认推荐（Fastjson 线） |
+| **Fastjson2** | `json-fastjson2` / `Fastjson2AdapterFactory` | 新项目默认推荐（Fastjson 线）。带注解反序列化走 BindingMeta 驱动的 `ObjectReader`（单次绑定）；无注解 DTO 走原生 `parseObject`。 |
 | **Gson** | `json-gson` / `GsonAdapterFactory` | 已有 Gson 栈、偏保守依赖 |
 | **Moshi** | `json-moshi` / `MoshiAdapterFactory` | Android / OkHttp 生态；反射桥接 JsonKit 注解，无需 Kotlin codegen |
 | **Fastjson 1.x** | `json-fastjson` / `FastjsonAdapterFactory` | 仅兼容旧依赖 |
