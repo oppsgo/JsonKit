@@ -57,6 +57,7 @@ implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.4") // pulls core
 implementation("com.github.oppsgo.json-kit:json-gson:1.0.4")
 implementation("com.github.oppsgo.json-kit:json-moshi:1.0.4")
 implementation("com.github.oppsgo.json-kit:json-fastjson:1.0.4") // Fastjson 1.x
+implementation("com.github.oppsgo.json-kit:json-kotlin:1.0.4") // optional Kotlin Instantiator
 ```
 
 Status: [jitpack.io/#oppsgo/json-kit](https://jitpack.io/#oppsgo/json-kit)
@@ -66,6 +67,7 @@ Status: [jitpack.io/#oppsgo/json-kit](https://jitpack.io/#oppsgo/json-kit)
 ```kotlin
 implementation(project(":core"))
 implementation(project(":adapter:json-fastjson2"))
+implementation(project(":support:json-kotlin")) // optional
 ```
 
 ---
@@ -91,9 +93,60 @@ Package root: `io.github.oppsgo.json` (annotations `.annotation`, converters `.c
 | **Fastjson2** | `json-fastjson2` / `Fastjson2AdapterFactory` | Default Fastjson line for new work. Annotated deserialize binds via BindingMeta-driven `ObjectReader` (single pass); plain DTOs use native `parseObject`. |
 | **Gson** | `json-gson` / `GsonAdapterFactory` | Existing Gson stacks |
 | **Moshi** | `json-moshi` / `MoshiAdapterFactory` | Android / OkHttp; reflective JsonKit bridge (no Kotlin codegen) |
-| **Fastjson 1.x** | `json-fastjson` / `FastjsonAdapterFactory` | Compatibility only |
+| **Fastjson 1.x** | `json-fastjson` / `FastjsonAdapterFactory` | Compatibility only (**no** Kotlin Instantiator) |
 
 You can register several factories (default + named) in one process.
+
+---
+
+## Kotlin support
+
+Optional module `:support:json-kotlin` binds idiomatic Kotlin `data class` / primary-constructor types via a cached Java `Constructor` (Fastjson2-style STATE tiers).
+
+### Enablement
+
+```kotlin
+JsonKitKotlin.enable() // once at process start
+JsonKit.setDefault(Fastjson2AdapterFactory.of())
+```
+
+Or per-adapter: `new JsonOptions.Builder().setKotlinSupport(true).build()` after `JsonKitKotlin.enable()` has registered the Instantiator.
+
+### Dependencies (consumer-supplied)
+
+| STATE | Meaning | Consumer deps |
+|-------|---------|---------------|
+| 0 | Java / Instantiator inactive | — |
+| 1 | `kotlin.Metadata` + stdlib | `json-kotlin` + `kotlin-stdlib` (≥ **1.6.21**) |
+| 2 | STATE 1 + reflect enrich | + `kotlin-reflect` (same Kotlin version as the app) |
+
+`json-kotlin` declares `kotlin-stdlib` / `kotlin-reflect` as **compileOnly** — they are **not** forced as API transitives. `:core` stays free of Kotlin runtime deps.
+
+### Annotations (v1)
+
+Use `@field:` so annotations land on Java fields visible to `BindingMeta`:
+
+```kotlin
+data class User(
+    @field:JsonProperty("user_name") val userName: String,
+    val age: Int = 0,
+)
+```
+
+### Engines
+
+| Engine | Kotlin Instantiator |
+|--------|---------------------|
+| Fastjson2 / Moshi / Gson | Yes when `JsonKitKotlin.enable()` |
+| Fastjson 1.x | **Out of scope** — migrate to Fastjson2 |
+
+### R8 / ProGuard (Kotlin)
+
+`json-kotlin` ships `META-INF/proguard/jsonkit-kotlin.pro` (keep `kotlin.Metadata` + constructors). Also keep your Kotlin model classes:
+
+```proguard
+-keep class com.example.app.model.** { <init>(...); <fields>; }
+```
 
 ---
 
@@ -315,6 +368,8 @@ Do not duplicate engine rules. Keep app DTOs / field-strategy classes yourself, 
 -keep class * implements io.github.oppsgo.json.convert.JsonFieldSerializer { <init>(); }
 -keep class * implements io.github.oppsgo.json.convert.JsonFieldDeserializer { <init>(); }
 ```
+
+When using `:support:json-kotlin`, also keep `kotlin.Metadata` (bundled in `jsonkit-kotlin.pro`) and Kotlin model constructors.
 
 ---
 

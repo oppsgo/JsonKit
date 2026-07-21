@@ -259,6 +259,10 @@ public final class BindingMeta {
                 if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)) {
                     continue;
                 }
+                // Skip synthetic / Kotlin compiler noise (companions are static already).
+                if (field.isSynthetic() || field.getName().indexOf('$') >= 0) {
+                    continue;
+                }
                 collected.add(field);
             }
             current = current.getSuperclass();

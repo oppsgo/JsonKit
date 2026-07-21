@@ -6,6 +6,7 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
+import io.github.oppsgo.json.JsonOptions;
 import io.github.oppsgo.json.annotation.JsonAlias;
 import io.github.oppsgo.json.annotation.JsonProperty;
 import io.github.oppsgo.json.convert.StrategyInstanceCache;
@@ -99,6 +100,7 @@ public class Fastjson2BindingPathTest {
     }
 
     private static Fastjson2BindingSupport newSupport() {
-        return new Fastjson2BindingSupport(new BindingCache(), new StrategyInstanceCache());
+        return new Fastjson2BindingSupport(
+                new BindingCache(), new StrategyInstanceCache(), JsonOptions.defaults());
     }
 }

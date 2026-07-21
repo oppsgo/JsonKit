@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.animalsniffer) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
 }
 
 group = "com.github.oppsgo"
@@ -15,7 +16,10 @@ subprojects {
     }
 
     pluginManager.withPlugin("java") {
-        pluginManager.apply(libs.plugins.animalsniffer.get().pluginId)
+        // Kotlin support references kotlin.* (compileOnly); skip Animal Sniffer.
+        if (name != "json-kotlin") {
+            pluginManager.apply(libs.plugins.animalsniffer.get().pluginId)
+        }
         pluginManager.apply("maven-publish")
 
         extensions.configure<JavaPluginExtension> {

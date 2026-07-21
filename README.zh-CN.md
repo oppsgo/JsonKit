@@ -26,8 +26,9 @@ JsonKit 是面向 JVM / Android 的轻量 JSON 门面库。对外统一 `JsonAda
 | `:core` | `JsonKit`、`JsonAdapter`、`JsonOptions`、`JsonTypeReference`、注解、字段转换 SPI |
 | `:adapter:json-gson` | Gson + `GsonAdapterFactory` |
 | `:adapter:json-fastjson2` | Fastjson2 + `Fastjson2AdapterFactory`（**推荐** Fastjson 线） |
-| `:adapter:json-fastjson` | Fastjson 1.x + `FastjsonAdapterFactory`（兼容） |
+| `:adapter:json-fastjson` | Fastjson 1.x + `FastjsonAdapterFactory`（兼容；**不**提供 Kotlin Instantiator） |
 | `:adapter:json-moshi` | Moshi + `MoshiAdapterFactory`（反射桥接 JsonKit 注解） |
+| `:support:json-kotlin` | 可选 Kotlin `data class` Instantiator（`JsonKitKotlin.enable()`） |
 
 ## 依赖
 
@@ -50,6 +51,11 @@ dependencyResolutionManagement {
 // 生产环境建议只选一个 adapter：
 implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.4")
 
+// 可选 Kotlin data class 支持（最低 Kotlin 1.6.21）：
+implementation("com.github.oppsgo.json-kit:json-kotlin:1.0.4")
+implementation("org.jetbrains.kotlin:kotlin-stdlib") // STATE 1
+implementation("org.jetbrains.kotlin:kotlin-reflect") // 可选 STATE 2
+
 // 另有：json-gson / json-moshi / json-fastjson
 // 聚合坐标：com.github.oppsgo:json-kit:1.0.4
 ```
@@ -61,7 +67,24 @@ implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.4")
 ```kotlin
 implementation(project(":core"))
 implementation(project(":adapter:json-fastjson2"))
+implementation(project(":support:json-kotlin")) // 可选
 ```
+
+## Kotlin 模型
+
+```kotlin
+JsonKitKotlin.enable()
+JsonKit.setDefault(Fastjson2AdapterFactory.of())
+
+data class User(
+    @field:JsonProperty("user_name") val userName: String,
+    val id: Int = 0,
+)
+```
+
+- 最低 Kotlin **1.6.21**；`json-kotlin` 不会把 `kotlin-stdlib` / `kotlin-reflect` 作为强制 API 传递依赖。
+- Fastjson **1.x** 不支持惯用 Kotlin 构造绑定 —— 请用 Fastjson2 / Moshi / Gson。
+- 详见：[docs/guide.zh-CN.md](docs/guide.zh-CN.md)。
 
 ## 快速开始
 

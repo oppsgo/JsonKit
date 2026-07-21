@@ -7,9 +7,11 @@ package io.github.oppsgo.json;
 public final class JsonOptions {
 
     private final boolean serializeNulls;
+    private final boolean kotlinSupport;
 
     private JsonOptions(Builder builder) {
         this.serializeNulls = builder.serializeNulls;
+        this.kotlinSupport = builder.kotlinSupport;
     }
 
     /**
@@ -18,13 +20,15 @@ public final class JsonOptions {
     public JsonOptions(JsonOptions other) {
         if (other == null) {
             this.serializeNulls = false;
+            this.kotlinSupport = false;
             return;
         }
         this.serializeNulls = other.serializeNulls;
+        this.kotlinSupport = other.kotlinSupport;
     }
 
     /**
-     * Default options ({@code serializeNulls = false}).
+     * Default options ({@code serializeNulls = false}, {@code kotlinSupport = false}).
      */
     public static JsonOptions defaults() {
         return new Builder().build();
@@ -38,10 +42,21 @@ public final class JsonOptions {
     }
 
     /**
+     * When {@code true}, adapters may use a registered Kotlin Instantiator
+     * (see {@code JsonKitKotlin.enable()} / {@link io.github.oppsgo.json.support.KotlinSupport})
+     * for {@code kotlin.Metadata} types. Has no effect unless an Instantiator is registered.
+     */
+    public boolean isKotlinSupport() {
+        return kotlinSupport;
+    }
+
+    /**
      * Builder seeded from this instance.
      */
     public Builder newBuilder() {
-        return new Builder().setSerializeNulls(serializeNulls);
+        return new Builder()
+                .setSerializeNulls(serializeNulls)
+                .setKotlinSupport(kotlinSupport);
     }
 
     /**
@@ -49,6 +64,7 @@ public final class JsonOptions {
      */
     public static final class Builder {
         private boolean serializeNulls;
+        private boolean kotlinSupport;
 
         /**
          * When {@code true}, adapters include null-valued fields in serialized JSON.
@@ -56,6 +72,16 @@ public final class JsonOptions {
          */
         public Builder setSerializeNulls(boolean serializeNulls) {
             this.serializeNulls = serializeNulls;
+            return this;
+        }
+
+        /**
+         * When {@code true}, this adapter opts into Kotlin Instantiator construction
+         * if {@link io.github.oppsgo.json.support.KotlinSupport} has a registered Instantiator.
+         * Prefer {@code JsonKitKotlin.enable()} for process-wide enablement.
+         */
+        public Builder setKotlinSupport(boolean kotlinSupport) {
+            this.kotlinSupport = kotlinSupport;
             return this;
         }
 

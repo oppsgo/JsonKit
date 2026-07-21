@@ -22,10 +22,13 @@ import io.github.oppsgo.json.JsonOptions;
 import io.github.oppsgo.json.convert.FieldConverters;
 import io.github.oppsgo.json.convert.StrategyInstanceCache;
 import io.github.oppsgo.json.support.BindingMeta;
+import io.github.oppsgo.json.support.DefaultObjectInstantiator;
+import io.github.oppsgo.json.support.KotlinSupport;
+import io.github.oppsgo.json.support.ObjectInstantiator;
 
 /**
  * Moshi {@link JsonAdapter.Factory} that binds JsonKit annotations onto Java fields
- * (no Kotlin codegen required).
+ * (optional Kotlin Instantiator when {@link KotlinSupport} is active).
  */
 final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
 
@@ -47,9 +50,11 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
             return null;
         }
 
+        ObjectInstantiator instantiator = KotlinSupport.resolve(options);
         BindingMeta meta = BindingMeta.scan(raw);
         List<Field> fields = meta.getFields();
-        if (fields.isEmpty() && !hasNoArgConstructor(raw)) {
+        boolean useKotlin = instantiator.supports(raw) && instantiator.constructsFromProperties(raw);
+        if (fields.isEmpty() && !useKotlin && !hasNoArgConstructor(raw)) {
             return null;
         }
 
@@ -90,8 +95,9 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
         }
 
         Set<String> keysToDrop = meta.getKeysToDrop();
-        Constructor<?> constructor = resolveConstructor(raw);
-        return new FieldJsonAdapter(raw, constructor, boundFields, nameToField, keysToDrop, options)
+        Constructor<?> constructor = useKotlin ? null : resolveConstructor(raw);
+        return new FieldJsonAdapter(
+                raw, constructor, useKotlin, instantiator, boundFields, nameToField, keysToDrop, options)
                 .nullSafe();
     }
 
@@ -205,6 +211,8 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
     private static final class FieldJsonAdapter extends JsonAdapter<Object> {
         private final Class<?> raw;
         private final Constructor<?> constructor;
+        private final boolean useKotlin;
+        private final ObjectInstantiator instantiator;
         private final List<BoundField> boundFields;
         private final Map<String, BoundField> nameToField;
         private final Set<String> keysToDrop;
@@ -213,12 +221,16 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
         FieldJsonAdapter(
                 Class<?> raw,
                 Constructor<?> constructor,
+                boolean useKotlin,
+                ObjectInstantiator instantiator,
                 List<BoundField> boundFields,
                 Map<String, BoundField> nameToField,
                 Set<String> keysToDrop,
                 JsonOptions options) {
             this.raw = raw;
             this.constructor = constructor;
+            this.useKotlin = useKotlin;
+            this.instantiator = instantiator;
             this.boundFields = boundFields;
             this.nameToField = nameToField;
             this.keysToDrop = keysToDrop;
@@ -230,9 +242,36 @@ final class JsonKitMoshiAdapterFactory implements JsonAdapter.Factory {
             if (reader.peek() == JsonReader.Token.NULL) {
                 return reader.nextNull();
             }
+
+            if (useKotlin) {
+                Map<String, Object> properties = new LinkedHashMap<String, Object>();
+                reader.beginObject();
+                while (reader.hasNext()) {
+                    String name = reader.nextName();
+                    if (keysToDrop.contains(name)) {
+                        reader.skipValue();
+                        continue;
+                    }
+                    BoundField bound = nameToField.get(name);
+                    if (bound == null || bound.ignoreDeserialize) {
+                        reader.skipValue();
+                        continue;
+                    }
+                    properties.put(bound.field.getName(), bound.adapter.fromJson(reader));
+                }
+                reader.endObject();
+                try {
+                    return instantiator.instantiate(raw, properties);
+                } catch (ReflectiveOperationException e) {
+                    throw new IOException("Cannot construct " + raw.getName(), e);
+                }
+            }
+
             Object instance;
             try {
-                instance = constructor.newInstance();
+                instance = constructor != null
+                        ? constructor.newInstance()
+                        : instantiator.instantiate(raw, DefaultObjectInstantiator.noProperties());
             } catch (ReflectiveOperationException e) {
                 throw new IOException("Cannot construct " + raw.getName(), e);
             }

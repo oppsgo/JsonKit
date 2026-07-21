@@ -26,8 +26,9 @@ JsonKit is a lightweight JSON facade for JVM and Android. It exposes a single `J
 | `:core` | `JsonKit`, `JsonAdapter`, `JsonOptions`, `JsonTypeReference`, annotations, field converters |
 | `:adapter:json-gson` | Gson + `GsonAdapterFactory` |
 | `:adapter:json-fastjson2` | Fastjson2 + `Fastjson2AdapterFactory` (**recommended** Fastjson line) |
-| `:adapter:json-fastjson` | Fastjson 1.x + `FastjsonAdapterFactory` (compatibility) |
+| `:adapter:json-fastjson` | Fastjson 1.x + `FastjsonAdapterFactory` (compatibility; **no** Kotlin Instantiator) |
 | `:adapter:json-moshi` | Moshi + `MoshiAdapterFactory` (reflective JsonKit bridge) |
+| `:support:json-kotlin` | Optional Kotlin `data class` Instantiator (`JsonKitKotlin.enable()`) |
 
 ## Installation
 
@@ -50,6 +51,11 @@ dependencyResolutionManagement {
 // Prefer one adapter module in production:
 implementation("com.github.oppsgo.json-kit:json-fastjson2:1.0.4")
 
+// Optional Kotlin data class support (min Kotlin 1.6.21):
+implementation("com.github.oppsgo.json-kit:json-kotlin:1.0.4")
+implementation("org.jetbrains.kotlin:kotlin-stdlib") // STATE 1
+implementation("org.jetbrains.kotlin:kotlin-reflect") // optional STATE 2
+
 // Also available: json-gson / json-moshi / json-fastjson
 // Aggregate (all modules): com.github.oppsgo:json-kit:1.0.4
 ```
@@ -61,7 +67,24 @@ Build status: [jitpack.io/#oppsgo/json-kit](https://jitpack.io/#oppsgo/json-kit)
 ```kotlin
 implementation(project(":core"))
 implementation(project(":adapter:json-fastjson2"))
+implementation(project(":support:json-kotlin")) // optional
 ```
+
+## Kotlin models
+
+```kotlin
+JsonKitKotlin.enable()
+JsonKit.setDefault(Fastjson2AdapterFactory.of())
+
+data class User(
+    @field:JsonProperty("user_name") val userName: String,
+    val id: Int = 0,
+)
+```
+
+- Min Kotlin **1.6.21**; `json-kotlin` does not force `kotlin-stdlib` / `kotlin-reflect` as API deps.
+- Fastjson **1.x** does not support idiomatic Kotlin constructor binding — use Fastjson2 / Moshi / Gson.
+- Details: [docs/guide.md](docs/guide.md#kotlin-support).
 
 ## Quick start
 

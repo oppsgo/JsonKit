@@ -78,7 +78,7 @@ public class Fastjson2Adapter implements JsonAdapter {
         this.options = resolved;
         this.bindings = bindings != null ? bindings : new BindingCache();
         this.strategies = new StrategyInstanceCache();
-        this.bindingSupport = new Fastjson2BindingSupport(this.bindings, this.strategies);
+        this.bindingSupport = new Fastjson2BindingSupport(this.bindings, this.strategies, resolved);
         this.filters = new Filter[]{createNameFilter(), createPropertyFilter(), createValueFilter()};
         if (resolved.isSerializeNulls()) {
             this.writeFeatures = new JSONWriter.Feature[]{JSONWriter.Feature.WriteMapNullValue};

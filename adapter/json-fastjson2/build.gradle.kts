@@ -13,4 +13,6 @@ dependencies {
     implementation(libs.fastjson2)
 
     testImplementation(testFixtures(projects.core))
+    testImplementation(projects.support.jsonKotlin)
+    testImplementation(testFixtures(projects.support.jsonKotlin))
 }

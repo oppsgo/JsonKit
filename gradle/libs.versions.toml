@@ -9,6 +9,9 @@ gummyBears = "0.14.0"
 jmh = "1.37"
 jmhGradlePlugin = "0.7.3"
 moshi = "1.15.1"
+# KGP for Gradle 8.x; consumer/compileOnly APIs stay at 1.6.21 (min Kotlin).
+kotlin = "1.9.24"
+kotlinStdlib = "1.6.21"
 
 [libraries]
 jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrainsAnnotations" }
@@ -17,6 +20,9 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 fastjson = { group = "com.alibaba", name = "fastjson", version.ref = "fastjson" }
 fastjson2 = { group = "com.alibaba.fastjson2", name = "fastjson2", version.ref = "fastjson2" }
 moshi = { group = "com.squareup.moshi", name = "moshi", version.ref = "moshi" }
+
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlinStdlib" }
+kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlinStdlib" }
 
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
@@ -31,3 +37,4 @@ jmh-generator-annprocess = { group = "org.openjdk.jmh", name = "jmh-generator-an
 [plugins]
 animalsniffer = { id = "ru.vyarus.animalsniffer", version.ref = "animalsniffer" }
 jmh = { id = "me.champeau.jmh", version.ref = "jmhGradlePlugin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

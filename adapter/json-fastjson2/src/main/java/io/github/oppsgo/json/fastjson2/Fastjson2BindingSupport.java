@@ -21,6 +21,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import io.github.oppsgo.json.convert.StrategyInstanceCache;
 import io.github.oppsgo.json.support.BindingCache;
 import io.github.oppsgo.json.support.BindingMeta;
+import io.github.oppsgo.json.support.KotlinClasspath;
+import io.github.oppsgo.json.support.KotlinSupport;
+import io.github.oppsgo.json.support.ObjectInstantiator;
+import io.github.oppsgo.json.JsonOptions;
 
 /**
  * Per-adapter ObjectReader registration and fail-closed binding predicates.
@@ -30,15 +34,20 @@ final class Fastjson2BindingSupport {
 
     private final BindingCache bindings;
     private final StrategyInstanceCache strategies;
+    private final JsonOptions options;
     private final ObjectReaderProvider provider;
     private final JSONReader.Context readContext;
     private final ConcurrentHashMap<Class<?>, Boolean> registered;
     private final ConcurrentHashMap<Type, Boolean> needsBindingCache;
     private final ConcurrentHashMap<Type, Boolean> graphEnsured;
 
-    Fastjson2BindingSupport(BindingCache bindings, StrategyInstanceCache strategies) {
+    Fastjson2BindingSupport(
+            BindingCache bindings,
+            StrategyInstanceCache strategies,
+            JsonOptions options) {
         this.bindings = bindings;
         this.strategies = strategies;
+        this.options = options != null ? options : JsonOptions.defaults();
         this.provider = new ObjectReaderProvider();
         this.readContext = JSONFactory.createReadContext(provider);
         this.registered = new ConcurrentHashMap<Class<?>, Boolean>();
@@ -149,7 +158,7 @@ final class Fastjson2BindingSupport {
         }
         try {
             BindingMeta meta = bindings.get(raw);
-            if (hasLocalDeserializeBinding(meta)) {
+            if (hasLocalDeserializeBinding(meta) || needsKotlinInstantiator(raw)) {
                 return true;
             }
             for (Field field : meta.getFields()) {
@@ -165,6 +174,16 @@ final class Fastjson2BindingSupport {
         } finally {
             visiting.remove(raw);
         }
+    }
+
+    private boolean needsKotlinInstantiator(Class<?> raw) {
+        if (!KotlinSupport.isActive(options)) {
+            return false;
+        }
+        ObjectInstantiator instantiator = KotlinSupport.resolve(options);
+        return instantiator.supports(raw)
+                && instantiator.constructsFromProperties(raw)
+                && KotlinClasspath.isKotlinClass(raw);
     }
 
     static boolean hasLocalDeserializeBinding(BindingMeta meta) {
@@ -228,9 +247,17 @@ final class Fastjson2BindingSupport {
             return;
         }
         BindingMeta meta = bindings.get(raw);
-        if (hasLocalDeserializeBinding(meta) && registered.putIfAbsent(raw, Boolean.TRUE) == null) {
+        boolean local = hasLocalDeserializeBinding(meta);
+        boolean kotlin = needsKotlinInstantiator(raw);
+        if ((local || kotlin) && registered.putIfAbsent(raw, Boolean.TRUE) == null) {
             try {
-                ObjectReader<?> reader = Fastjson2BindingObjectReader.create(raw, meta, strategies);
+                ObjectReader<?> reader;
+                if (kotlin) {
+                    reader = new InstantiatorObjectReader(
+                            raw, meta, KotlinSupport.resolve(options), strategies);
+                } else {
+                    reader = Fastjson2BindingObjectReader.create(raw, meta, strategies);
+                }
                 provider.register(raw, reader);
             } catch (RuntimeException e) {
                 registered.remove(raw);
